@@ -9,8 +9,11 @@ Desktop.ini
 *.egg
 *.egg-info
 dist
+
+# directory
 build
 bin
+resources
 
 # My configurations:
 db.ini
