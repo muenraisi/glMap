@@ -60,6 +60,7 @@ set(CHAPTERS
 
 set(0.indie
 	0.1.world_map
+	0.2.china_map
 )
 
 # set(1.getting_started

@@ -185,9 +185,6 @@ int main()
 	glBindVertexArray(0);
 	// load textures
 	// -------------
-	unsigned int cubeTexture = loadTexture(FileSystem::getPath("resources/textures/marble.jpg").c_str());
-	unsigned int floorTexture = loadTexture(FileSystem::getPath("resources/textures/metal.png").c_str());
-	unsigned int transparentTexture = loadTexture(FileSystem::getPath("resources/textures/grass.png").c_str());
 
 	unsigned int rockTexture = loadTexture(FileSystem::getPath("resources/terrain/rock.tga").c_str());
 	unsigned int grassTexture = loadTexture(FileSystem::getPath("resources/terrain/grass.tga").c_str());
@@ -413,7 +410,7 @@ unsigned int loadTexture(char const * path)
 
 	int width, height, nrComponents;
 	unsigned char *data = stbi_load(path, &width, &height, &nrComponents, 0);
-	std::cout << path << " laoded sucessfuly with (" << width << "," << height << ")-" << nrComponents << std::endl;
+	std::cout << path << " loaded sucessfuly with (" << width << "," << height << ")-" << nrComponents << std::endl;
 	if (data)
 	{
 		GLenum format;
@@ -453,7 +450,7 @@ unsigned int loadTextureRec(char const * path, int& width, int& height)
 
 	int nrComponents;
 	unsigned char *data = stbi_load(path, &width, &height, &nrComponents, 0);
-	std::cout << path << " laoded sucessfuly with (" << width << "," << height << ")-" << nrComponents << std::endl;
+	std::cout << path << " loaded sucessfuly with (" << width << "," << height << ")-" << nrComponents << std::endl;
 	if (data)
 	{
 		GLenum format;
