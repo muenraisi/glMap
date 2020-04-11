@@ -8,7 +8,6 @@ in vec4 texWeights;
 in vec2 uv;
 in vec3 fragPos;
 in float isWater;
-in vec3 normal;
 
 uniform float scale;
 uniform sampler2DRect normalMap;
@@ -30,6 +29,22 @@ void main()
     // normal
     //vec3 normal = texture(normalMap, uv * scale / 2.0).rgb;
     //normal = normalize(normal * 2.0 - 1.0);
+
+	const vec2 size = vec2(2.0,0.0);
+    const ivec3 off = ivec3(-1,0,1);
+
+    float s01 = textureOffset(terrainMap, uv * 10., off.xy).x;
+    float s21 = textureOffset(terrainMap, uv * 10., off.zy).x;
+    float s10 = textureOffset(terrainMap, uv * 10., off.yx).x;
+    float s12 = textureOffset(terrainMap, uv * 10., off.yz).x;
+
+	//1st method 
+    //vec3 va = normalize(vec3(size.xy,s21-s01));
+    //vec3 vb = normalize(vec3(size.yx,s12-s10));
+    //vec3 normal = cross(va,vb);
+
+	//2nd method
+	vec3 normal = normalize(vec3((s01-s21)/2./1.5,(s10-s12)/2./1.5,1));
 
     // ambient
     

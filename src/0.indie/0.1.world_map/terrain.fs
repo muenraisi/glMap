@@ -10,6 +10,7 @@ in vec3 fragPos;
 in float isWater;
 
 uniform float scale;
+uniform int normalScale;
 uniform sampler2DRect normalMap;
 uniform sampler2DRect terrainMap;
 uniform sampler2DRect riversMap;
@@ -27,7 +28,7 @@ void main()
 {
 
     // normal
-    vec3 normal = texture(normalMap, uv * scale / 2.0).rgb;
+    vec3 normal = texture(normalMap, uv * scale / normalScale).rgb;
     normal = normalize(normal * 2.0 - 1.0);
 
     // ambient

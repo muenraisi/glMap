@@ -12,7 +12,6 @@ uniform float snowLevel;
 out vec4 texWeights;
 out vec2 uv;
 out vec3 fragPos;
-out vec3 normal;
 out vec3 debugColor;
 
 float interp(float min, float max, float val)
@@ -48,9 +47,7 @@ void calcWeights(float y) {
 
 void main() {
 
-	vec4 v1 = (gl_in[1].gl_Position - gl_in[0].gl_Position);
-    vec4 v2 = (gl_in[2].gl_Position - gl_in[0].gl_Position);
-    vec3 norm = normalize(cross(v1.xyz, v2.xyz));
+
 
     for (int i = 0; i < gl_in.length(); i++)
     {
@@ -68,7 +65,6 @@ void main() {
 		uv = vec2(pos.x, pos.z);
 		fragPos = vec3(model * pos);
         gl_Position = mvpMatrix * pos;
-		normal = -vec3(norm.x, norm.z, norm.y);
 
 		debugColor = vec3(0.3,0.3,0.3);
         EmitVertex();

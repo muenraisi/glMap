@@ -18,7 +18,7 @@ void main()
 	float s = posn.x * scale;
     float t = posn.z * scale;
 
-    posn = vec4(posn.x,texture(worldMap, vec2(s, t)).x /2. , posn.z, posn.w);
+    posn = vec4(posn.x,texture(worldMap, vec2(s, t)).x  , posn.z, posn.w);
     gl_Position = posn;
 }
 

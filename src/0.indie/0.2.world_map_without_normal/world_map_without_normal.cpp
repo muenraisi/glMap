@@ -84,7 +84,7 @@ int main()
 	Shader shader("3.1.blending.vs", "3.1.blending.fs");
 	Shader terrainShader("terrain.vs", "terrain.fs", "terrain.gs", "terrain.cs", "terrain.es");
 
-	std::string mapPath = "resources/china/";
+	std::string mapPath = "resources/world/";
 
 	int worldWidth, worldHeight;
 	unsigned int worldMap = loadTextureRec(FileSystem::getPath(mapPath + "height.png").c_str(), worldWidth, worldHeight);

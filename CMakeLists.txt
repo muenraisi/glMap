@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 2.8)
 cmake_policy(VERSION 2.8)
 
-project (LearnOpenGL)
+project (glMap)
 
 IF(NOT CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose the type of build (Debug or Release)" FORCE)
@@ -60,7 +60,8 @@ set(CHAPTERS
 
 set(0.indie
 	0.1.world_map
-	0.2.china_map
+	0.2.world_map_without_normal
+	0.3.height2normal
 )
 
 # set(1.getting_started

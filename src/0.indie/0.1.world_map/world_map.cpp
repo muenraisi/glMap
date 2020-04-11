@@ -91,7 +91,8 @@ int main()
 	unsigned int terrainMap = loadTextureRec(FileSystem::getPath(mapPath + "terrain.png").c_str(), worldWidth, worldHeight);
 	unsigned int riversMap = loadTextureRec(FileSystem::getPath(mapPath + "rivers.png").c_str(), worldWidth, worldHeight);
 	int normalWidth, normalHeight;
-	unsigned int normalMap = loadTextureRec(FileSystem::getPath(mapPath + "normal.png").c_str(), normalWidth, normalHeight);
+	unsigned int normalMap = loadTextureRec(FileSystem::getPath(mapPath + "height2normal.png").c_str(), normalWidth, normalHeight);
+	int normalScale = worldHeight / normalHeight;
 
 	// set up vertex data (and buffer(s)) and configure vertex attributes
 	// ------------------------------------------------------------------
@@ -306,6 +307,7 @@ int main()
 		glm::mat4 mvMatrix = view * model;
 		glm::mat4 mvpMatrix = projection * view * model;
 
+		terrainShader.setInt("normalScale", normalScale);
 		terrainShader.setMat4("mvMatrix", mvMatrix);
 		terrainShader.setMat4("mvpMatrix", mvpMatrix);
 
