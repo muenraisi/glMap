@@ -84,7 +84,7 @@ int main()
 	Shader shader("3.1.blending.vs", "3.1.blending.fs");
 	Shader terrainShader("terrain.vs", "terrain.fs", "terrain.gs", "terrain.cs", "terrain.es");
 
-	std::string mapPath = "resources/world/";
+	std::string mapPath = "resources/china/";
 
 	int worldWidth, worldHeight;
 	unsigned int worldMap = loadTextureRec(FileSystem::getPath(mapPath + "height.png").c_str(), worldWidth, worldHeight);
@@ -92,8 +92,8 @@ int main()
 	unsigned int riversMap = loadTextureRec(FileSystem::getPath(mapPath + "rivers.png").c_str(), worldWidth, worldHeight);
 	int normalWidth, normalHeight;
 	unsigned int normalMap = loadTextureRec(FileSystem::getPath(mapPath + "normal.png").c_str(), normalWidth, normalHeight);
-	int normalScale = worldHeight / normalHeight;
-
+	int deltaWidth, deltaHeight;
+	unsigned int deltaMap = loadTextureRec(FileSystem::getPath(mapPath + "delta.png").c_str(), normalWidth, normalHeight);
 	// set up vertex data (and buffer(s)) and configure vertex attributes
 	// ------------------------------------------------------------------
 	float cubeVertices[] = {
@@ -299,6 +299,8 @@ int main()
 		glBindTexture(GL_TEXTURE_RECTANGLE, terrainMap);
 		glActiveTexture(GL_TEXTURE7);
 		glBindTexture(GL_TEXTURE_RECTANGLE, riversMap);
+		glActiveTexture(GL_TEXTURE8);
+		glBindTexture(GL_TEXTURE_RECTANGLE, deltaMap);
 
 		model = glm::mat4(1.0f);
 		model = glm::translate(model, glm::vec3(-scaleWidth / 2., 0.0f, -scaleHeight / 2));
@@ -307,7 +309,6 @@ int main()
 		glm::mat4 mvMatrix = view * model;
 		glm::mat4 mvpMatrix = projection * view * model;
 
-		terrainShader.setInt("normalScale", normalScale);
 		terrainShader.setMat4("mvMatrix", mvMatrix);
 		terrainShader.setMat4("mvpMatrix", mvpMatrix);
 
@@ -487,8 +488,8 @@ unsigned int worldVBO, worldEBO;
 void renderWorld(float width, float height, Shader& shader)
 {
 	//width = 2; height = 1;
-	const int grid_width = 11 * 16;
-	const int grid_height = 4 * 16;
+	const int grid_width = 40*4;
+	const int grid_height = 27*4;
 	if (worldVAO == 0)
 	{
 		// positions
