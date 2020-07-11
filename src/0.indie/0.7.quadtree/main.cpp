@@ -10,13 +10,20 @@
 #include <learnopengl/shader_i.h>
 #include <learnopengl/camera.h>
 #include <learnopengl/model.h>
+#include <learnopengl/terrain.h>
+
+
 
 #include <iostream>
+#include <learnopengl\terrain.h>
+#include "..\..\..\includes\learnopengl\QuadTree.h"
 
+
+#if defined(DEBUG) | defined(_DEBUG)
 #if defined(DEBUG) | defined(_DEBUG)
 void APIENTRY openglCallbackFunction(GLenum source, GLenum type, GLuint id,
 	GLenum severity, GLsizei length,
-	const GLchar* msg, const void* data)
+	const GLchar* msg, const void* scale)
 {
 	char* _source;
 	char* _type;
@@ -44,7 +51,7 @@ void APIENTRY openglCallbackFunction(GLenum source, GLenum type, GLuint id,
 		break;
 
 	case GL_DEBUG_SOURCE_OTHER:
-		_source = "UNKNOWN";
+		_source = "OTHER";
 		break;
 
 	default:
@@ -108,17 +115,22 @@ void APIENTRY openglCallbackFunction(GLenum source, GLenum type, GLuint id,
 		break;
 	}
 
-	printf("%d: %s (type), %s (severity), %s (source): %s (message)\n",
-		id, _type, _severity, _source, msg);
+	fprintf(stderr, "GL CALLBACK: %s type = %s, severity = %s, message = %s, source = %s\n",
+		(type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""),
+		_type, _severity, msg,_source);
+
+	if (type == GL_DEBUG_TYPE_ERROR)
+		abort();
 }
+#endif
 #endif
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-void processInput(GLFWwindow *window);
-unsigned int loadTexture(const char *path);
-unsigned int loadTextureRec(const char *path, int& width, int& height);
+void processInput(GLFWwindow* window);
+unsigned int loadTexture(const char* path);
+unsigned int loadTextureRec(const char* path, int& width, int& height);
 void renderWorld(float width, float height, Shader& shader);
 
 // settings
@@ -150,8 +162,8 @@ int main()
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // uncomment this statement to fix compilation on OS X
 #endif
 
-														 // glfw window creation
-														 // --------------------
+	// glfw window creation
+	// --------------------
 	GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
 	if (window == NULL)
 	{
@@ -175,8 +187,7 @@ int main()
 		return -1;
 	}
 
-
-		// configure global opengl state
+	// configure global opengl state
 	// -----------------------------
 		//Let OpenGL Log errors
 #ifdef _DEBUG
@@ -189,10 +200,9 @@ int main()
 
 	// build and compile shaders
 	// -------------------------
-	Shader shader("3.1.blending.vs", "3.1.blending.fs");
 	Shader terrainShader("terrain.vs", "terrain.fs", "terrain.gs", "terrain.cs", "terrain.es");
 
-	std::string mapPath = "resources/china/";
+	std::string mapPath = "resources/world/";
 
 	int worldWidth, worldHeight;
 	unsigned int worldMap = loadTextureRec(FileSystem::getPath(mapPath + "height.png").c_str(), worldWidth, worldHeight);
@@ -201,93 +211,11 @@ int main()
 	int normalWidth, normalHeight;
 	unsigned int normalMap = loadTextureRec(FileSystem::getPath(mapPath + "normal.png").c_str(), normalWidth, normalHeight);
 
-	// set up vertex data (and buffer(s)) and configure vertex attributes
-	// ------------------------------------------------------------------
-	float cubeVertices[] = {
-		// positions          // texture Coords
-		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-		0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-		0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-		0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-		0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-		0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-		-0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-
-		-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-		-0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-		-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-		0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-		0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-		0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-		0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-		0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-
-		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-		0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-		0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-		-0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f
-	};
 
 	float scale = (float)(worldWidth + worldHeight) / 2.f / 10.f;
 	std::cout << "scale size is " << scale << std::endl;
 	float scaleWidth = (float)(worldWidth / scale);
 	float scaleHeight = (float)(worldHeight / scale);
-
-	float transparentVertices[] = {
-		// positions         // texture Coords (swapped y coordinates because texture is flipped upside down)
-		0.0f,  0.5f,  0.0f,  0.0f,  0.0f,
-		0.0f, -0.5f,  0.0f,  0.0f,  1.0f,
-		1.0f, -0.5f,  0.0f,  1.0f,  1.0f,
-
-		0.0f,  0.5f,  0.0f,  0.0f,  0.0f,
-		1.0f, -0.5f,  0.0f,  1.0f,  1.0f,
-		1.0f,  0.5f,  0.0f,  1.0f,  0.0f
-	};
-	//glPatchParameteri(GL_PATCH_VERTICES, 4);
-
-	// cube VAO
-	unsigned int cubeVAO, cubeVBO;
-	glGenVertexArrays(1, &cubeVAO);
-	glGenBuffers(1, &cubeVBO);
-	glBindVertexArray(cubeVAO);
-	glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), &cubeVertices, GL_STATIC_DRAW);
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-
-	// transparent VAO
-	unsigned int transparentVAO, transparentVBO;
-	glGenVertexArrays(1, &transparentVAO);
-	glGenBuffers(1, &transparentVBO);
-	glBindVertexArray(transparentVAO);
-	glBindBuffer(GL_ARRAY_BUFFER, transparentVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(transparentVertices), transparentVertices, GL_STATIC_DRAW);
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 
 
 	glBindVertexArray(0);
@@ -299,21 +227,9 @@ int main()
 	unsigned int snowTexture = loadTexture(FileSystem::getPath("resources/terrain/snow.tga").c_str());
 	unsigned int waterTexture = loadTexture(FileSystem::getPath("resources/terrain/water.tga").c_str());
 
-	// transparent vegetation locations
-	// --------------------------------
-	vector<glm::vec3> vegetation
-	{
-		glm::vec3(-1.5f, 0.0f, -0.48f),
-		glm::vec3(1.5f, 0.0f, 0.51f),
-		glm::vec3(0.0f, 0.0f, 0.7f),
-		glm::vec3(-0.3f, 0.0f, -2.3f),
-		glm::vec3(0.5f, 0.0f, -0.6f)
-	};
 
 	// shader configuration
 	// --------------------
-	shader.use();
-	shader.setInt("texture1", 0);
 
 	terrainShader.use();
 	terrainShader.setInt("grassTexture", 0);
@@ -330,6 +246,9 @@ int main()
 	// lighting info
 	// -------------
 	glm::vec3 lightPos(0.0f, 3.0f, 0.0f);
+
+
+	Terrain worldTerrain(scaleWidth, scaleHeight);
 
 	// render loop
 	// -----------
@@ -351,33 +270,10 @@ int main()
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		// draw objects
-		shader.use();
 		glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 		glm::mat4 view = camera.GetViewMatrix();
 		glm::mat4 model = glm::mat4(1.0f);
-		shader.setMat4("projection", projection);
-		shader.setMat4("view", view);
-		//// cubes
-		//glBindVertexArray(cubeVAO);
-		//glActiveTexture(GL_TEXTURE0);
-		//glBindTexture(GL_TEXTURE_2D, cubeTexture);
-		//model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
-		//shader.setMat4("model", model);
-		//glDrawArrays(GL_TRIANGLES, 0, 36);
-		//model = glm::mat4(1.0f);
-		//model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
-		//shader.setMat4("model", model);
-		//glDrawArrays(GL_TRIANGLES, 0, 36);
-		//// vegetation
-		//glBindVertexArray(transparentVAO);
-		//glBindTexture(GL_TEXTURE_2D, transparentTexture);
-		//for (GLuint i = 0; i < vegetation.size(); i++)
-		//{
-		//    model = glm::mat4(1.0f);
-		//    model = glm::translate(model, vegetation[i]);
-		//    shader.setMat4("model", model);
-		//    glDrawArrays(GL_TRIANGLES, 0, 6);
-		//}
+
 
 		// floor
 		terrainShader.use();
@@ -408,7 +304,7 @@ int main()
 		//glBindTexture(GL_TEXTURE_RECTANGLE, riversMap);
 
 		model = glm::mat4(1.0f);
-		model = glm::translate(model, glm::vec3(-scaleWidth / 2., 0.0f, -scaleHeight / 2));
+		model = glm::translate(model, glm::vec3(0.f, 0.0f, 0.f));
 		terrainShader.setMat4("model", model);
 
 		glm::mat4 mvMatrix = view * model;
@@ -432,7 +328,7 @@ int main()
 
 
 
-		renderWorld(scaleWidth, scaleHeight, terrainShader);
+		worldTerrain.render(terrainShader, camera);
 		/*glPatchParameteri(GL_PATCH_VERTICES, 4);
 		glDrawElements(GL_PATCHES, 4, GL_UNSIGNED_SHORT, (const GLvoid *)0);*/
 
@@ -454,7 +350,7 @@ int main()
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
 // ---------------------------------------------------------------------------------------------------------
-void processInput(GLFWwindow *window)
+void processInput(GLFWwindow* window)
 {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
@@ -511,15 +407,15 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 
 // utility function for loading a 2D texture from file
 // ---------------------------------------------------
-unsigned int loadTexture(char const * path)
+unsigned int loadTexture(char const* path)
 {
 	unsigned int textureID;
 	glGenTextures(1, &textureID);
 
 	int width, height, nrComponents;
-	unsigned char *data = stbi_load(path, &width, &height, &nrComponents, 0);
+	unsigned char* scale = stbi_load(path, &width, &height, &nrComponents, 0);
 	std::cout << path << " loaded sucessfuly with (" << width << "," << height << ")-" << nrComponents << std::endl;
-	if (data)
+	if (scale)
 	{
 		GLenum format;
 		if (nrComponents == 1)
@@ -530,7 +426,7 @@ unsigned int loadTexture(char const * path)
 			format = GL_RGBA;
 
 		glBindTexture(GL_TEXTURE_2D, textureID);
-		glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+		glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, scale);
 		glGenerateMipmap(GL_TEXTURE_2D);
 
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, format == GL_RGBA ? GL_CLAMP_TO_EDGE : GL_REPEAT); // for this tutorial: use GL_CLAMP_TO_EDGE to prevent semi-transparent borders. Due to interpolation it takes texels from next repeat 
@@ -538,12 +434,12 @@ unsigned int loadTexture(char const * path)
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-		stbi_image_free(data);
+		stbi_image_free(scale);
 	}
 	else
 	{
 		std::cout << "Texture failed to load at path: " << path << std::endl;
-		stbi_image_free(data);
+		stbi_image_free(scale);
 	}
 
 	return textureID;
@@ -551,15 +447,15 @@ unsigned int loadTexture(char const * path)
 
 // utility function for loading a 2D texture from file
 // ---------------------------------------------------
-unsigned int loadTextureRec(char const * path, int& width, int& height)
+unsigned int loadTextureRec(char const* path, int& width, int& height)
 {
 	unsigned int textureID;
 	glGenTextures(1, &textureID);
 
 	int nrComponents;
-	unsigned char *data = stbi_load(path, &width, &height, &nrComponents, 0);
+	unsigned char* scale = stbi_load(path, &width, &height, &nrComponents, 0);
 	std::cout << path << " loaded sucessfuly with (" << width << "," << height << ")-" << nrComponents << std::endl;
-	if (data)
+	if (scale)
 	{
 		GLenum format;
 		if (nrComponents == 1)
@@ -570,126 +466,20 @@ unsigned int loadTextureRec(char const * path, int& width, int& height)
 			format = GL_RGBA;
 
 		glBindTexture(GL_TEXTURE_RECTANGLE, textureID);
-		glTexImage2D(GL_TEXTURE_RECTANGLE, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+		glTexImage2D(GL_TEXTURE_RECTANGLE, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, scale);
 
 		//glGenerateMipmap(GL_TEXTURE_RECTANGLE);
 
 
-		stbi_image_free(data);
+		stbi_image_free(scale);
 	}
 	else
 	{
 		std::cout << "Texture failed to load at path: " << path << std::endl;
-		stbi_image_free(data);
+		stbi_image_free(scale);
 	}
 
 	return textureID;
 }
 
-// renders a 1x1 quad to represents the world in NDC with manually calculated tangent vectors
-// ------------------------------------------------------------------
-unsigned int worldVAO = 0;
-unsigned int worldVBO, worldEBO;
-void renderWorld(float width, float height, Shader& shader)
-{
-	//width = 2; height = 1;
-	const int grid_width = 40*4;
-	const int grid_height = 27*4;
-	if (worldVAO == 0)
-	{
-		// positions
-		glm::vec3 pos1(width, 0.0f, height);
-		glm::vec3 pos2(0.0f, 0.0f, height);
-		glm::vec3 pos3(0.0f, 0.0f, 0);
-		glm::vec3 pos4(width, 0.0f, 0);
-		// texture coordinates
-		glm::vec2 uv1(0.0f, 1.0f);
-		glm::vec2 uv2(0.0f, 0.0f);
-		glm::vec2 uv3(1.0f, 0.0f);
-		glm::vec2 uv4(1.0f, 1.0f);
-		// normal vector
-		glm::vec3 nm(0.0f, 1.0f, 0.0f);
 
-		// calculate tangent/bitangent vectors of both triangles
-		glm::vec3 tangent, bitangent;
-		// triangle 1
-		// ----------
-		glm::vec3 edge1 = pos2 - pos1;
-		glm::vec3 edge2 = pos3 - pos1;
-		glm::vec2 deltaUV1 = uv2 - uv1;
-		glm::vec2 deltaUV2 = uv3 - uv1;
-
-		GLfloat f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
-
-		tangent.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
-		tangent.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
-		tangent.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
-		tangent = glm::normalize(tangent);
-
-		bitangent.x = f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
-		bitangent.y = f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
-		bitangent.z = f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
-		bitangent = glm::normalize(bitangent);
-
-		shader.use();
-		shader.setVec3("aTangent", tangent);
-		shader.setVec3("aNormal", nm);
-		shader.setVec3("aBitangent", bitangent);
-
-		float worldVertices[3 * (grid_width + 1) * (grid_height + 1)];
-		GLushort elems[4 * grid_width * grid_height];
-
-		int indx, start;
-		//verts array
-		for (int i = 0; i <= grid_width; i++)   //100 vertices on a 10x10 grid
-		{
-			for (int j = 0; j <= grid_height; j++)
-			{
-				indx = (grid_height + 1) * i + j;
-				worldVertices[3 * indx] = static_cast <float> (i * width / grid_width);        //x  varies from -45 to +45
-				worldVertices[3 * indx + 1] = 0.;            //y  is set to 0 (ground plane)
-				worldVertices[3 * indx + 2] = static_cast <float> (j * height / grid_height);        //z  varies from 0 to -90
-			}
-		}
-
-		//std::cout << "world vertices: ";
-		//for (int i =0; i< 3 * (grid_width + 1) * (grid_height + 1); i++)
-		//  std::cout << worldVertices[i] << " ";
-		//std::cout << std::endl;
-
-		//elems array
-		for (int i = 0; i < grid_width; i++)
-		{
-			for (int j = 0; j < grid_height; j++)
-			{
-				indx = grid_height * i + j;
-				start = (grid_height + 1)  * i + j;
-				elems[4 * indx] = start;
-				elems[4 * indx + 1] = start + grid_height + 1;
-				elems[4 * indx + 2] = start + grid_height + 2;
-				elems[4 * indx + 3] = start + 1;
-			}
-		}
-		//std::cout << "elems: ";
-		//for (int i = 0; i< 4 * grid_width * grid_height; i++)
-		//  std::cout << elems[i] << " ";
-		//std::cout << std::endl;
-
-		// configure plane VAO
-		glGenVertexArrays(1, &worldVAO);
-		glGenBuffers(1, &worldVBO);
-		glGenBuffers(1, &worldEBO);
-		glBindVertexArray(worldVAO);
-		glBindBuffer(GL_ARRAY_BUFFER, worldVBO);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(worldVertices), &worldVertices, GL_STATIC_DRAW);
-
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, worldEBO);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elems), elems, GL_STATIC_DRAW);
-
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-	}
-	glBindVertexArray(worldVAO);
-	glPatchParameteri(GL_PATCH_VERTICES, 4);
-	glDrawElements(GL_PATCHES, 4 * grid_width * grid_height, GL_UNSIGNED_SHORT, (const GLvoid *)0);
-}

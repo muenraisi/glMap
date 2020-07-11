@@ -31,16 +31,22 @@ float lodEdge(vec4 pointA, vec4 pointB)
     
 }
 
+float renorm_2(float x)
+{
+    return exp2( ceil(log2(x)));
+}
+
 void main()
 {
 
     gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
 
-    gl_TessLevelOuter[0] = lodEdge(gl_in[0].gl_Position, gl_in[3].gl_Position);
-    gl_TessLevelOuter[1] = lodEdge(gl_in[1].gl_Position, gl_in[0].gl_Position);
-    gl_TessLevelOuter[2] = lodEdge(gl_in[2].gl_Position, gl_in[1].gl_Position);
-    gl_TessLevelOuter[3] = lodEdge(gl_in[3].gl_Position, gl_in[2].gl_Position);
-    gl_TessLevelInner[1] = (gl_TessLevelOuter[0] + gl_TessLevelOuter[2]) / 2.0;
-    gl_TessLevelInner[0] = (gl_TessLevelOuter[1] + gl_TessLevelOuter[3]) / 2.0;
+    gl_TessLevelOuter[0] = renorm_2(lodEdge(gl_in[0].gl_Position, gl_in[3].gl_Position));
+    gl_TessLevelOuter[1] = renorm_2(lodEdge(gl_in[1].gl_Position, gl_in[0].gl_Position));
+    gl_TessLevelOuter[2] = renorm_2(lodEdge(gl_in[2].gl_Position, gl_in[1].gl_Position));
+    gl_TessLevelOuter[3] = renorm_2(lodEdge(gl_in[3].gl_Position, gl_in[2].gl_Position));
+    float ave_lod = renorm_2((gl_TessLevelOuter[0] + gl_TessLevelOuter[1] +gl_TessLevelOuter[2] + gl_TessLevelOuter[3])/4.);
+    gl_TessLevelInner[1] = ave_lod;// renorm_2(sqrt(gl_TessLevelOuter[0] * gl_TessLevelOuter[2]) );
+    gl_TessLevelInner[0] = ave_lod;// renorm_2(sqrt(gl_TessLevelOuter[1] * gl_TessLevelOuter[3]) );
 
 }

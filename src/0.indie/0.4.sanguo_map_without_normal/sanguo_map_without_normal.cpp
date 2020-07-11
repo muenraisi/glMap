@@ -10,6 +10,7 @@
 #include <learnopengl/shader_i.h>
 #include <learnopengl/camera.h>
 #include <learnopengl/model.h>
+#include <learnopengl/time.h>
 
 #include <iostream>
 
@@ -78,6 +79,8 @@ int main()
 	// configure global opengl state
 	// -----------------------------
 	glEnable(GL_DEPTH_TEST);
+	//glEnable(GL_FOG);
+	//glEnable(GL_DITHER);
 
 	// build and compile shaders
 	// -------------------------
@@ -224,6 +227,8 @@ int main()
 	// -------------
 	glm::vec3 lightPos(0.0f, 3.0f, 0.0f);
 
+
+	Time globalTime;
 	// render loop
 	// -----------
 	while (!glfwWindowShouldClose(window))
@@ -337,6 +342,9 @@ int main()
 		// -------------------------------------------------------------------------------
 		glfwSwapBuffers(window);
 		glfwPollEvents();
+
+		globalTime.Update();
+		std::cout<< "FPS: "<< globalTime.FPS()<<std::endl;
 	}
 
 	// optional: de-allocate all resources once they've outlived their purpose:
@@ -488,8 +496,8 @@ unsigned int worldVBO, worldEBO;
 void renderWorld(float width, float height, Shader& shader)
 {
 	//width = 2; height = 1;
-	const int grid_width = 40*4;
-	const int grid_height = 27*4;
+	const int grid_width = 40*1;
+	const int grid_height = 27*1;
 	if (worldVAO == 0)
 	{
 		// positions

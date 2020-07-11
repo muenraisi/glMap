@@ -65,6 +65,7 @@ set(0.indie
 	0.4.sanguo_map_without_normal
 	0.5.sanguo_map
 	0.6.height2delta
+	0.7.quadtree
 )
 
 # set(1.getting_started
