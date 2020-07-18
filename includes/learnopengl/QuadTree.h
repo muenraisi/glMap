@@ -6,13 +6,14 @@
 #include <glm/glm.hpp>
 
 #include "Point.h"
+#include "debug.h"
 using namespace std;
 
 
 /* 一个矩形区域的象限划分：:
-UL(1)   |    UR(0)
+TL(1)   |    TR(0)
 --------|-----------
-LL(2)   |    LR(3)
+BL(2)   |    BR(3)
 以下对该象限类型的枚举
 */
 
@@ -36,33 +37,47 @@ struct QuadNode
         center = (_topLeft+_botRight)/2.;
         scale = _scale;
     }
-    QuadNode()
-    {
-    }
 };
+
 
 // The main quadtree class 
 class QuadTree
 {
 public:
+    int level;
+    // Neighbour of the tree
+    QuadTree** topNeighbour;
+    QuadTree** leftNeighbour;
+    QuadTree** botNeighbour;
+    QuadTree** rightNeighbour;
+
+
     QuadTree();
     QuadTree(Point topL, Point botR, double scale);
+    ~QuadTree();
 
-    QuadNode* getNode() { return quadNode_; };
+    QuadNode* getNode() { return node_; };
     glm::vec3 getTrans();
-    std::vector<QuadTree*>* getTrees();
+    glm::vec4 getNeigh();
+
+    void deleteSubtrees();
+
+    void setChildren(QuadTree* topLeftChild, QuadTree* topRightChild,
+        QuadTree* botLeftChild, QuadTree* botRightChild);
+    std::vector<QuadTree*> getChildren();
 
     bool empty();
-    void split();
+    bool split();
 
 private:
     // Contains details of node 
-    QuadNode* quadNode_;
+    QuadNode* node_;
 
-    // Children of this tree 
-    QuadTree* topLeftTree_;
-    QuadTree* topRightTree_;
-    QuadTree* botLeftTree_;
-    QuadTree* botRightTree_;
+    // Children of the tree 
+    QuadTree* topLeftChild_;
+    QuadTree* topRightChild_;
+    QuadTree* botLeftChild_;
+    QuadTree* botRightChild_;
+
 
 };

@@ -3,9 +3,13 @@ cmake_policy(VERSION 2.8)
 
 project (glMap)
 
-IF(NOT CMAKE_BUILD_TYPE)
-  SET(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose the type of build (Debug or Release)" FORCE)
-ENDIF(NOT CMAKE_BUILD_TYPE)
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+endif()
+
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose the type of build (Debug or Release)" FORCE)
+endif(NOT CMAKE_BUILD_TYPE)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
 
@@ -195,6 +199,8 @@ foreach(CHAPTER ${CHAPTERS})
             "src/${CHAPTER}/${DEMO}/*.gs"
 			"src/${CHAPTER}/${DEMO}/*.cs"
 			"src/${CHAPTER}/${DEMO}/*.es"
+			"includes/learnopengl/*.h"
+			"includes/learnopengl/*.cpp"
         )
         set(NAME "${CHAPTER}__${DEMO}")
         add_executable(${NAME} ${SOURCE})

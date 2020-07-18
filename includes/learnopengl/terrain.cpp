@@ -1,15 +1,44 @@
 #include "terrain.h"
-
+#include "debug.h"
 
 Terrain::Terrain(float width, float height) : width_(width), height_(height)
 {
 	Point topLeft = Point(0, height_);
 	Point botRight = Point(width_, 0);
-	quadTree_ = new QuadTree(topLeft, botRight, 1.0);
+	
+	Point origin = Point(0, 0);
+	boundaryTree_ = new QuadTree(origin, origin, 0.0);
+	boundaryTree_->setChildren(boundaryTree_, boundaryTree_, boundaryTree_, boundaryTree_);
 
-	instanceTrans_ = new std::vector<glm::vec3>;
-	glm::vec3 transform(width_ /2., height_ /2., 1.f);
-	instanceTrans_->push_back(transform);
+	quadTree_ = new QuadTree(topLeft, botRight, 1.0);
+	quadTree_->topNeighbour = &boundaryTree_;
+	quadTree_->botNeighbour = &boundaryTree_;
+	quadTree_->leftNeighbour = &boundaryTree_;
+	quadTree_->rightNeighbour = &boundaryTree_;
+
+
+	transInstance_ = new std::vector<glm::vec3>;
+	transInstance_->push_back(glm::vec3(width_ / 2., height_ / 2., 1.f));
+
+	neighInstance_ = new std::vector<glm::vec4>;
+	neighInstance_->push_back(glm::vec4(1.0, 1.0, 1.0, 1.0));
+}
+
+Terrain::~Terrain()
+{
+	if (quadTree_) {
+		delete quadTree_;
+	}
+	if (boundaryTree_ ) {
+		boundaryTree_->setChildren(nullptr, nullptr, nullptr, nullptr);
+		delete boundaryTree_;
+	}
+	if (transInstance_ ) {
+		delete transInstance_;
+	}
+	if (neighInstance_) {
+		delete neighInstance_;
+	}
 }
 
 void Terrain::render(Shader& shader, Camera& camera)
@@ -27,18 +56,26 @@ void Terrain::render(Shader& shader, Camera& camera)
 
 	glBindVertexArray(VAO);
 
-	glBindBuffer(GL_ARRAY_BUFFER, IBO);
-	//glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * instanceTrans_->size(), &(*instanceTrans_)[0], GL_STATIC_DRAW);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * instanceTrans_->size(), instanceTrans_->data(), GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, transIBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * transInstance_->size(), 
+		transInstance_->data(), GL_STATIC_DRAW);
 
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
 	glVertexAttribDivisor(1, 1);
 
+	glBindBuffer(GL_ARRAY_BUFFER, neighIBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec4) * neighInstance_->size(), 
+		neighInstance_->data(), GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid*)0);
+	glVertexAttribDivisor(2, 1);
+
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	glPatchParameteri(GL_PATCH_VERTICES, 4);
-	glDrawElementsInstanced(GL_PATCHES, 4, GL_UNSIGNED_SHORT, (const GLvoid*)0, instanceTrans_->size());
+	glDrawElementsInstanced(GL_PATCHES, 4, GL_UNSIGNED_SHORT, (const GLvoid*)0, transInstance_->size());
 }
 
 
@@ -85,10 +122,10 @@ void Terrain::initial(Shader& shader) {
 	shader.setVec3("aBitangent", bitangent);
 
 	std::vector<float> worldVertices{
-		-width_ / 2.f,0.f,-height_ / 2.f,
-		width_ / 2.f,0.f,-height_ / 2.f,
-		-width_ / 2.f,0.f,height_ / 2.f,
-		width_ / 2.f,0.f,height_ / 2.f
+		-width_ / 2.f, 0.f, -height_ / 2.f,
+		width_ / 2.f, 0.f, -height_ / 2.f,
+		-width_ / 2.f, 0.f, height_ / 2.f,
+		width_ / 2.f, 0.f, height_ / 2.f
 	};
 
 	std::vector<GLushort> elems{ 0, 2, 3, 1 };
@@ -96,7 +133,8 @@ void Terrain::initial(Shader& shader) {
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
 	glGenBuffers(1, &EBO);
-	glGenBuffers(1, &IBO);
+	glGenBuffers(1, &transIBO);
+	glGenBuffers(1, &neighIBO);
 
 	glBindVertexArray(VAO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -107,43 +145,49 @@ void Terrain::initial(Shader& shader) {
 
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-
-
 }
 
 void Terrain::splitQuadTree(Camera& camera)
 {
-	splitQuadTree(*quadTree_, camera);
-}
+	quadTree_->deleteSubtrees();
 
-void Terrain::splitQuadTree(QuadTree& quadTree, Camera& camera)
-{
-	if (quadTree.getNode() == nullptr) return;
-	if (needSplit(*(quadTree.getNode()), camera))
-		quadTree.split();
-	else
-		return;
-	std::vector<QuadTree*>* trees = quadTree.getTrees();
-	for (QuadTree* tree : *trees) {
-		splitQuadTree(*tree, camera);
+	std::queue<QuadTree*> treeQueue;
+	treeQueue.push(quadTree_);
+	QuadTree* tree = nullptr;
+	while (!treeQueue.empty()) {
+		tree = treeQueue.front();
+		treeQueue.pop();
+		if (!tree) continue;
+		if (!tree->getNode()) continue;
+		if (needSplit(*(tree->getNode()), camera))
+			if (!tree->split())
+				continue;
+		std::vector<QuadTree*> children = tree->getChildren();
+		for (QuadTree* child : children) {
+			treeQueue.push(child);
+		}
 	}
 }
 
 void Terrain::updateInstances(Shader& shader)
 {
-	instanceTrans_->clear();
-	std::stack<QuadTree*> treeStack;
-	treeStack.push(quadTree_);
+	transInstance_->clear();
+	neighInstance_->clear();
+	std::queue<QuadTree*> treeQueue;
+	treeQueue.push(quadTree_);
 	QuadTree* tree = nullptr;
-	while (!treeStack.empty()) {
-		tree = treeStack.top();
-		treeStack.pop();
+	while (!treeQueue.empty()) {
+		tree = treeQueue.front();
+		treeQueue.pop();
+		if (!tree)
+			continue;
 		if (tree->empty()) {
-			instanceTrans_->push_back(tree->getTrans());
+			transInstance_->push_back(tree->getTrans());
+			neighInstance_->push_back(tree->getNeigh());
 		}
 		else {
-			for (QuadTree* subTree : *(tree->getTrees())) {
-				treeStack.push(subTree);
+			for (QuadTree* subTree : tree->getChildren()) {
+				treeQueue.push(subTree);
 			}
 		}
 	}
@@ -159,17 +203,6 @@ bool Terrain::needSplit(QuadNode& center, Camera& camera)
 	glm::vec3 mid = glm::vec3(center.center.GetX(), 0.f, center.center.GetY());
 	float d = distance(pointA, pointB);
 	float l = distance(mid, camera.Position);
-
-	//glm::vec4 clipA = mvp * pointA;
-	//glm::vec4 clipB = mvp * pointB;
-
-	//glm::vec3 ndcA = glm::vec3(clipA.x, clipA.y, clipA.z) / clipA.w;
-	//glm::vec3 ndcB = glm::vec3(clipB.x, clipB.y, clipB.z) / clipB.w;
-
-	//if ((abs(ndcA.x) > 1 || abs(ndcA.z) > 1) && (abs(ndcB.x) > 1 || abs(ndcB.z) > 1)) // both of the two point out of the NDC range
-	//	return false;
-
-	//float absDistance = sqrt((ndcA.x - ndcB.x) * (ndcA.x - ndcB.x) + (ndcA.z - ndcB.z) * (ndcA.z - ndcB.z));
 
 	if (l/d < 4) return true;
 	else return false;

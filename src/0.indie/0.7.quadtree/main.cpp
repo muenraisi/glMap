@@ -1,3 +1,5 @@
+
+
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <stb_image.h>
@@ -17,6 +19,11 @@
 #include <iostream>
 #include <learnopengl\terrain.h>
 #include "..\..\..\includes\learnopengl\QuadTree.h"
+
+
+#define _CRTDBG_MAP_ALLOC
+#include <stdlib.h>
+#include <crtdbg.h>
 
 
 #if defined(DEBUG) | defined(_DEBUG)
@@ -149,6 +156,7 @@ float lastFrame = 0.0f;
 
 int main()
 {
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 
 	// glfw: initialize and configure
 	// ------------------------------
@@ -345,6 +353,9 @@ int main()
 
 
 	glfwTerminate();
+
+	
+	//_CrtDumpMemoryLeaks();
 	return 0;
 }
 
