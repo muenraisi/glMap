@@ -5,7 +5,6 @@
 #include <cmath> 
 #include <glm/glm.hpp>
 
-#include "Point.h"
 #include "debug.h"
 using namespace std;
 
@@ -24,17 +23,17 @@ BL(2)   |    BR(3)
 // The objects that we want stored in the quadtree 
 struct QuadNode
 {
-    Point center;
-    Point topLeft;
-    Point botRight;
+    glm::vec2 center;
+    glm::vec2 topLeft;
+    glm::vec2 botRight;
     double scale=1.;
-    QuadNode(Point _topLeft, Point _botRight, double _scale=1.0)
+    QuadNode( glm::vec2 _topLeft,  glm::vec2 _botRight,  double _scale=1.0)
     {
-        assert(_topLeft.GetX() <= _botRight.GetX());
-        assert(_topLeft.GetY() >= _botRight.GetY());
+        assert(_topLeft.x <= _botRight.x);
+        assert(_topLeft.y >= _botRight.y);
         topLeft = _topLeft;
         botRight = _botRight;
-        center = (_topLeft+_botRight)/2.;
+        center = (_topLeft+_botRight)/2.f;
         scale = _scale;
     }
 };
@@ -53,16 +52,16 @@ public:
 
 
     QuadTree();
-    QuadTree(Point topL, Point botR, double scale);
+    QuadTree(const glm::vec2 topL, const glm::vec2 botR, double scale);
     ~QuadTree();
 
-    QuadNode* getNode() { return node_; };
+    QuadNode* getNode();
     glm::vec3 getTrans();
     glm::vec4 getNeigh();
 
     void deleteSubtrees();
 
-    void setChildren(QuadTree* topLeftChild, QuadTree* topRightChild,
+    void setChildren(QuadTree* topRightChild, QuadTree* topLeftChild,
         QuadTree* botLeftChild, QuadTree* botRightChild);
     std::vector<QuadTree*> getChildren();
 
@@ -74,8 +73,8 @@ private:
     QuadNode* node_;
 
     // Children of the tree 
-    QuadTree* topLeftChild_;
     QuadTree* topRightChild_;
+    QuadTree* topLeftChild_;
     QuadTree* botLeftChild_;
     QuadTree* botRightChild_;
 

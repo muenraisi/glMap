@@ -1,12 +1,13 @@
 #include "terrain.h"
 #include "debug.h"
 
-Terrain::Terrain(float width, float height) : width_(width), height_(height)
+Terrain::Terrain(float width, float height,  Camera& camera, Shader& shader):
+	width_(width), height_(height), camera_(&camera), shader_(&shader)
 {
-	Point topLeft = Point(0, height_);
-	Point botRight = Point(width_, 0);
+	glm::vec2 topLeft = glm::vec2(0, height_);
+	glm::vec2 botRight = glm::vec2(width_, 0);
 	
-	Point origin = Point(0, 0);
+	glm::vec2 origin = glm::vec2(0, 0);
 	boundaryTree_ = new QuadTree(origin, origin, 0.0);
 	boundaryTree_->setChildren(boundaryTree_, boundaryTree_, boundaryTree_, boundaryTree_);
 
@@ -41,18 +42,18 @@ Terrain::~Terrain()
 	}
 }
 
-void Terrain::render(Shader& shader, Camera& camera)
+void Terrain::render()
 {
 	//width = 2; height = 1;
 
-	splitQuadTree(camera);
+	splitQuadTree();
 
 	if (VAO == 0)
 	{
-		initial(shader);
+		initial();
 	}
 
-	updateInstances(shader);
+	updateInstances();
 
 	glBindVertexArray(VAO);
 
@@ -79,7 +80,7 @@ void Terrain::render(Shader& shader, Camera& camera)
 }
 
 
-void Terrain::initial(Shader& shader) {
+void Terrain::initial() {
 	double halfWidth = width_ / 2.;
 	double halfHeight = height_ / 2.;
 	// positions
@@ -116,10 +117,10 @@ void Terrain::initial(Shader& shader) {
 	bitangent.z = f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
 	bitangent = glm::normalize(bitangent);
 
-	shader.use();
-	shader.setVec3("aTangent", tangent);
-	shader.setVec3("aNormal", nm);
-	shader.setVec3("aBitangent", bitangent);
+	shader_->use();
+	shader_->setVec3("aTangent", tangent);
+	shader_->setVec3("aNormal", nm);
+	shader_->setVec3("aBitangent", bitangent);
 
 	std::vector<float> worldVertices{
 		-width_ / 2.f, 0.f, -height_ / 2.f,
@@ -147,7 +148,7 @@ void Terrain::initial(Shader& shader) {
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 }
 
-void Terrain::splitQuadTree(Camera& camera)
+void Terrain::splitQuadTree()
 {
 	quadTree_->deleteSubtrees();
 
@@ -159,9 +160,8 @@ void Terrain::splitQuadTree(Camera& camera)
 		treeQueue.pop();
 		if (!tree) continue;
 		if (!tree->getNode()) continue;
-		if (needSplit(*(tree->getNode()), camera))
-			if (!tree->split())
-				continue;
+		if (needSplit(*(tree->getNode())) && !tree->split())
+			continue;
 		std::vector<QuadTree*> children = tree->getChildren();
 		for (QuadTree* child : children) {
 			treeQueue.push(child);
@@ -169,7 +169,7 @@ void Terrain::splitQuadTree(Camera& camera)
 	}
 }
 
-void Terrain::updateInstances(Shader& shader)
+void Terrain::updateInstances()
 {
 	transInstance_->clear();
 	neighInstance_->clear();
@@ -193,17 +193,16 @@ void Terrain::updateInstances(Shader& shader)
 	}
 }
 
-bool Terrain::needSplit(QuadNode& center, Camera& camera)
+bool Terrain::needSplit(const  QuadNode& center)
 {
-	
 
 	//if (center.scale <= 0.01) return false;
-	glm::vec3 pointA = glm::vec3(center.topLeft.GetX(), 0.f, center.topLeft.GetY());
-	glm::vec3 pointB = glm::vec3(center.botRight.GetX(), 0.f, center.botRight.GetY());
-	glm::vec3 mid = glm::vec3(center.center.GetX(), 0.f, center.center.GetY());
+	glm::vec3 pointA = glm::vec3(center.topLeft.x, 0.f, center.topLeft.y);
+	glm::vec3 pointB = glm::vec3(center.botRight.x, 0.f, center.botRight.y);
+	glm::vec3 mid = glm::vec3(center.center.x, 0.f, center.center.y);
 	float d = distance(pointA, pointB);
-	float l = distance(mid, camera.Position);
+	float l = distance(mid, camera_->Position);
 
-	if (l/d < 4) return true;
+	if (l/d < 16) return true;
 	else return false;
 }

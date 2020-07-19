@@ -12,9 +12,8 @@ float lodEdge(vec3 pointA, vec3 pointB, float split)
     float d = distance(pointA, pointB);
     vec3 mid = (pointA + pointB) / 2.;
     float l = distance(mid, viewPos);
-    return max(pow(2, ceil ( log2(l/ d/100))), split+1);
-    //return split + 1.;
-
+    //return max(pow(2, ceil ( log2(l/ d/50))), split+1);
+    return split + 1.;
 }
 
 void main()

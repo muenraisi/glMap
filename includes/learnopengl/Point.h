@@ -11,8 +11,8 @@ public:
 
 	~Point() { }
 
-	double GetX();
-	double GetY();
+	double getX();
+	double getY();
 
 	Point& operator ++();
 	Point operator ++(int);

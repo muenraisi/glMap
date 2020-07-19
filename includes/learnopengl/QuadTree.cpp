@@ -1,6 +1,6 @@
 #include <assert.h>
 
-#include "QuadTree.h"
+#include "quadTree.h"
 
 
 
@@ -22,7 +22,7 @@ QuadTree::QuadTree()
 
 
 
-QuadTree::QuadTree(Point topL, Point botR, double scale = 1.0)
+QuadTree::QuadTree(const glm::vec2 topL, const glm::vec2 botR, double scale = 1.0)
 {
 	level = 1;
 	topNeighbour = nullptr;
@@ -56,9 +56,14 @@ QuadTree::~QuadTree()
 	}
 }
 
+QuadNode* QuadTree::getNode()
+{
+	return node_;
+}
+
 glm::vec3 QuadTree::getTrans()
 {
-	return glm::vec3(node_->center.GetX(), node_->center.GetY(), node_->scale);
+	return glm::vec3(node_->center.x, node_->center.y, node_->scale);
 }
 
 glm::vec4 QuadTree::getNeigh()
@@ -88,8 +93,8 @@ void QuadTree::deleteSubtrees()
 	}
 }
 
-void QuadTree::setChildren(QuadTree* topLeftChild, QuadTree* topRightChild,
-	QuadTree* botLeftChild, QuadTree* botRightChild)
+void QuadTree::setChildren( QuadTree* topRightChild,  QuadTree* topLeftChild,
+	 QuadTree* botLeftChild,  QuadTree* botRightChild)
 {
 	topLeftChild_ = topLeftChild;
 	topRightChild_ = topRightChild;
@@ -99,7 +104,7 @@ void QuadTree::setChildren(QuadTree* topLeftChild, QuadTree* topRightChild,
 
 std::vector<QuadTree*> QuadTree::getChildren()
 {
-	return std::vector<QuadTree*>{ topLeftChild_, topRightChild_, botLeftChild_, botRightChild_ };
+	return std::vector<QuadTree*>{ topRightChild_, topLeftChild_, botLeftChild_, botRightChild_ };
 }
 
 bool QuadTree::empty()
@@ -123,15 +128,8 @@ bool QuadTree::split()
 		!*rightNeighbour || !*leftNeighbour)
 		return false;
 
-	topLeftChild_ = new QuadTree(node_->topLeft, node_->center, node_->scale / 2.);
-	topLeftChild_->level = level + 1;
-	topLeftChild_->topNeighbour = &(*topNeighbour)->botLeftChild_;
-	topLeftChild_->leftNeighbour = &(*leftNeighbour)->topRightChild_;
-	topLeftChild_->rightNeighbour = &topRightChild_;
-	topLeftChild_->botNeighbour = &botLeftChild_;
-
-	Point topCenter = Point(node_->center.GetX(), node_->topLeft.GetY());
-	Point centerRight = Point(node_->botRight.GetX(), node_->center.GetY());
+	glm::vec2 topCenter = glm::vec2(node_->center.x, node_->topLeft.y);
+	glm::vec2 centerRight = glm::vec2(node_->botRight.x, node_->center.y);
 	topRightChild_ = new QuadTree(topCenter, centerRight, node_->scale / 2.);
 	topRightChild_->level = level + 1;
 	topRightChild_->topNeighbour = &(*topNeighbour)->botRightChild_;
@@ -139,8 +137,15 @@ bool QuadTree::split()
 	topRightChild_->rightNeighbour = &(*rightNeighbour)->topLeftChild_;
 	topRightChild_->botNeighbour = &botRightChild_;
 
-	Point centerLeft = Point(node_->topLeft.GetX(), node_->center.GetY());
-	Point botCenter = Point(node_->center.GetX(), node_->botRight.GetY());
+	topLeftChild_ = new QuadTree(node_->topLeft, node_->center, node_->scale / 2.);
+	topLeftChild_->level = level + 1;
+	topLeftChild_->topNeighbour = &(*topNeighbour)->botLeftChild_;
+	topLeftChild_->leftNeighbour = &(*leftNeighbour)->topRightChild_;
+	topLeftChild_->rightNeighbour = &topRightChild_;
+	topLeftChild_->botNeighbour = &botLeftChild_;
+
+	glm::vec2 centerLeft = glm::vec2(node_->topLeft.x, node_->center.y);
+	glm::vec2 botCenter = glm::vec2(node_->center.x, node_->botRight.y);
 	botLeftChild_ = new QuadTree(centerLeft, botCenter, node_->scale / 2.);
 	botLeftChild_->level = level + 1;
 	botLeftChild_->topNeighbour = &topLeftChild_;

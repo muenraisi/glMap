@@ -1,11 +1,11 @@
-#include "Point.h"
+#include "point.h"
 
-double Point::GetX()
+double Point::getX()
 {
 	return x_;
 }
 
-double Point::GetY()
+double Point::getY()
 {
 	return y_;
 }

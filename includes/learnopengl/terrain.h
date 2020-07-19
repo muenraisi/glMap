@@ -12,19 +12,21 @@
 // here we define a class on render the terrain
 class Terrain {
 public:
-	Terrain(float width, float height) ;
+	Terrain(float width, float height,  Camera& camera , Shader& shader) ;
 	~Terrain();
-	void render(Shader& shader, Camera& camera);
-	void initial(Shader& shader);
-	void splitQuadTree(Camera& camera);
-	void updateInstances(Shader& shader);
+	void render();
+	void initial();
+	void splitQuadTree();
+	void updateInstances();
 
-	bool needSplit(QuadNode& center, Camera& camera);
+	bool needSplit(const QuadNode& center);
 
 
 private:
 	float width_;
 	float height_;
+	Camera* camera_;
+	Shader* shader_;
 	int max_level_ = 5;
 	QuadTree* quadTree_;
 	QuadTree* boundaryTree_;

@@ -13,14 +13,9 @@
 #include <learnopengl/camera.h>
 #include <learnopengl/model.h>
 #include <learnopengl/terrain.h>
-
-
+#include <learnopengl/time.h>
 
 #include <iostream>
-#include <learnopengl\terrain.h>
-#include "..\..\..\includes\learnopengl\QuadTree.h"
-
-
 #define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>
 #include <crtdbg.h>
@@ -154,6 +149,8 @@ bool firstMouse = true;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
+
+
 int main()
 {
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
@@ -179,6 +176,7 @@ int main()
 		glfwTerminate();
 		return -1;
 	}
+
 	glfwMakeContextCurrent(window);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 	glfwSetCursorPosCallback(window, mouse_callback);
@@ -205,6 +203,7 @@ int main()
 	glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, true);
 #endif
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
 
 	// build and compile shaders
 	// -------------------------
@@ -256,8 +255,9 @@ int main()
 	glm::vec3 lightPos(0.0f, 3.0f, 0.0f);
 
 
-	Terrain worldTerrain(scaleWidth, scaleHeight);
+	Terrain worldTerrain(scaleWidth, scaleHeight, camera, terrainShader);
 
+	Time globalTime;
 	// render loop
 	// -----------
 	while (!glfwWindowShouldClose(window))
@@ -267,6 +267,7 @@ int main()
 		float currentFrame = (float)glfwGetTime();
 		deltaTime = currentFrame - lastFrame;
 		lastFrame = currentFrame;
+
 
 		// input
 		// -----
@@ -336,7 +337,7 @@ int main()
 
 
 
-		worldTerrain.render(terrainShader, camera);
+		worldTerrain.render();
 		/*glPatchParameteri(GL_PATCH_VERTICES, 4);
 		glDrawElements(GL_PATCHES, 4, GL_UNSIGNED_SHORT, (const GLvoid *)0);*/
 
@@ -346,6 +347,10 @@ int main()
 		// -------------------------------------------------------------------------------
 		glfwSwapBuffers(window);
 		glfwPollEvents();
+		
+		// time: calculate fps
+		globalTime.Update();
+		std::cout << "FPS: " << globalTime.FPS() << std::endl;
 	}
 
 	// optional: de-allocate all resources once they've outlived their purpose:
