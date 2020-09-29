@@ -1,17 +1,21 @@
 #include "terrain.h"
 #include "debug.h"
 
-Terrain::Terrain(float width, float height,  Camera& camera, Shader& shader):
-	width_(width), height_(height), camera_(&camera), shader_(&shader)
+Terrain::Terrain(float width, float height,  
+	Camera& camera, Shader& shader, HeightMap& heightMap):
+	width_(width), height_(height), 
+	camera_(&camera), shader_(&shader), heightMap_(&heightMap)
 {
 	glm::vec2 topLeft = glm::vec2(0, height_);
 	glm::vec2 botRight = glm::vec2(width_, 0);
 	
 	glm::vec2 origin = glm::vec2(0, 0);
-	boundaryTree_ = new QuadTree(origin, origin, 0.0);
+	QuadNode boudaryNode(origin, origin, 0.0);
+	boundaryTree_ = new QuadTree(boudaryNode);
 	boundaryTree_->setChildren(boundaryTree_, boundaryTree_, boundaryTree_, boundaryTree_);
 
-	quadTree_ = new QuadTree(topLeft, botRight, 1.0);
+	QuadNode quadNode(topLeft, botRight, 1.0);
+	quadTree_ = new QuadTree(quadNode);
 	quadTree_->topNeighbour = &boundaryTree_;
 	quadTree_->botNeighbour = &boundaryTree_;
 	quadTree_->leftNeighbour = &boundaryTree_;
@@ -21,12 +25,16 @@ Terrain::Terrain(float width, float height,  Camera& camera, Shader& shader):
 	transInstance_ = new std::vector<glm::vec3>;
 	transInstance_->push_back(glm::vec3(width_ / 2., height_ / 2., 1.f));
 
-	neighInstance_ = new std::vector<glm::vec4>;
-	neighInstance_->push_back(glm::vec4(1.0, 1.0, 1.0, 1.0));
+	neighbourInstance_ = new std::vector<glm::vec4>;
+	neighbourInstance_->push_back(glm::vec4(1.0, 1.0, 1.0, 1.0));
+
+	heightInstance_ = new std::vector<glm::vec4>;
+	heightInstance_->push_back(glm::vec4(0., 0.0, 0.0, 0.0)); //TODO:
 }
 
 Terrain::~Terrain()
 {
+	std::cout << "start destruct Terrain";
 	if (quadTree_) {
 		delete quadTree_;
 	}
@@ -37,8 +45,11 @@ Terrain::~Terrain()
 	if (transInstance_ ) {
 		delete transInstance_;
 	}
-	if (neighInstance_) {
-		delete neighInstance_;
+	if (neighbourInstance_) {
+		delete neighbourInstance_;
+	}
+	if (heightInstance_) {
+		delete heightInstance_;
 	}
 }
 
@@ -65,13 +76,21 @@ void Terrain::render()
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
 	glVertexAttribDivisor(1, 1);
 
-	glBindBuffer(GL_ARRAY_BUFFER, neighIBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec4) * neighInstance_->size(), 
-		neighInstance_->data(), GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, neighbourIBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec4) * neighbourInstance_->size(), 
+		neighbourInstance_->data(), GL_STATIC_DRAW);
 
 	glEnableVertexAttribArray(2);
 	glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid*)0);
 	glVertexAttribDivisor(2, 1);
+
+	glBindBuffer(GL_ARRAY_BUFFER, heightIBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec4) * heightInstance_->size(),
+		heightInstance_->data(), GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(3);
+	glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid*)0);
+	glVertexAttribDivisor(3, 1);
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
@@ -135,7 +154,8 @@ void Terrain::initial() {
 	glGenBuffers(1, &VBO);
 	glGenBuffers(1, &EBO);
 	glGenBuffers(1, &transIBO);
-	glGenBuffers(1, &neighIBO);
+	glGenBuffers(1, &neighbourIBO);
+	glGenBuffers(1, &heightIBO);
 
 	glBindVertexArray(VAO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -151,15 +171,15 @@ void Terrain::initial() {
 void Terrain::splitQuadTree()
 {
 	quadTree_->deleteSubtrees();
-
 	std::queue<QuadTree*> treeQueue;
 	treeQueue.push(quadTree_);
 	QuadTree* tree = nullptr;
 	while (!treeQueue.empty()) {
 		tree = treeQueue.front();
 		treeQueue.pop();
-		if (!tree) continue;
-		if (!tree->getNode()) continue;
+		if (!tree) continue; //skip the leaves
+		QuadNode quadNode = *(tree -> getNode());
+		if (quadNode.topLeft == quadNode.botRight) continue;
 		if (needSplit(*(tree->getNode())) && !tree->split())
 			continue;
 		std::vector<QuadTree*> children = tree->getChildren();
@@ -172,7 +192,8 @@ void Terrain::splitQuadTree()
 void Terrain::updateInstances()
 {
 	transInstance_->clear();
-	neighInstance_->clear();
+	neighbourInstance_->clear();
+	heightInstance_->clear();
 	std::queue<QuadTree*> treeQueue;
 	treeQueue.push(quadTree_);
 	QuadTree* tree = nullptr;
@@ -183,7 +204,8 @@ void Terrain::updateInstances()
 			continue;
 		if (tree->empty()) {
 			transInstance_->push_back(tree->getTrans());
-			neighInstance_->push_back(tree->getNeigh());
+			neighbourInstance_->push_back(tree->getNeighbour());
+			heightInstance_->push_back(tree->getHeight());
 		}
 		else {
 			for (QuadTree* subTree : tree->getChildren()) {
@@ -195,11 +217,22 @@ void Terrain::updateInstances()
 
 bool Terrain::needSplit(const  QuadNode& center)
 {
-
+	//if (center.topLeft == center.botRight) return false;
 	//if (center.scale <= 0.01) return false;
+
 	glm::vec3 pointA = glm::vec3(center.topLeft.x, 0.f, center.topLeft.y);
 	glm::vec3 pointB = glm::vec3(center.botRight.x, 0.f, center.botRight.y);
 	glm::vec3 mid = glm::vec3(center.center.x, 0.f, center.center.y);
+	
+	// belong to FOV
+	//glm::vec3 lookup = glm::normalize(mid - camera_->Position);
+	//float cosA = glm::dot(lookup, camera_->Front);
+	//float cosB = glm::dot(lookup, camera_->Front);
+	//if (cosA < glm::cos(glm::radians(camera_->Zoom) * 0.6) 
+	//	&& cosB < glm::cos(glm::radians(camera_->Zoom))* 0.6)
+	//	return false;
+
+
 	float d = distance(pointA, pointB);
 	float l = distance(mid, camera_->Position);
 

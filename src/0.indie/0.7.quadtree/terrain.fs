@@ -12,6 +12,8 @@ in float isWater;
 uniform float scale;
 uniform int normalScale;
 uniform sampler2DRect normalMap;
+uniform sampler2DRect terrainMap;
+uniform sampler2DRect riversMap;
 
 
 uniform mat4 model;
@@ -32,12 +34,19 @@ void main()
 
     // ambient
     
-    vec3 color = texture(waterTexture, uv * 5.).rgb * texWeights[0] 
-        + texture(grassTexture, uv * 5.).rgb * texWeights[1]
-        + texture(rockTexture, uv * 5.).rgb * texWeights[2]
-        + texture(snowTexture, uv * 5.).rgb * texWeights[3];
+    //vec3 color = texture(waterTexture, uv * 5.).rgb * texWeights[0] 
+    //    + texture(grassTexture, uv * 5.).rgb * texWeights[1]
+    //    + texture(rockTexture, uv * 5.).rgb * texWeights[2]
+    //    + texture(snowTexture, uv * 5.).rgb * texWeights[3];
     
-    //vec3 riversColor = texture(riversMap, uv * scale).rgb;
+    vec3 terrainColor = texture(terrainMap, uv * scale).rgb;
+    vec3 riversColor = texture(riversMap, uv * scale).rgb;
+    vec3 color;
+    if (riversColor.r < 0.1 || riversColor.g < 0.1 || riversColor.g <0.1) {
+         color = riversColor;
+    } else {
+         color = terrainColor;
+    }
     vec3 ambient = 0.2 * color;
 
     // tangent space

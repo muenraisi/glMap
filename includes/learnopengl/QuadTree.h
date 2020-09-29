@@ -26,18 +26,26 @@ struct QuadNode
     glm::vec2 center;
     glm::vec2 topLeft;
     glm::vec2 botRight;
-    double scale=1.;
+
+    double scale;
+    QuadNode()
+    {
+      center = glm::vec2();
+      topLeft = glm::vec2();
+      botRight = glm::vec2();
+      scale = 1.;
+    }
     QuadNode( glm::vec2 _topLeft,  glm::vec2 _botRight,  double _scale=1.0)
     {
         assert(_topLeft.x <= _botRight.x);
         assert(_topLeft.y >= _botRight.y);
         topLeft = _topLeft;
         botRight = _botRight;
+        // default and will be change if close to camera
         center = (_topLeft+_botRight)/2.f;
         scale = _scale;
     }
 };
-
 
 // The main quadtree class 
 class QuadTree
@@ -50,14 +58,18 @@ public:
     QuadTree** botNeighbour;
     QuadTree** rightNeighbour;
 
+    glm::vec4 realHeight; // the exact height based on the position 
+    glm::vec4 imageHeight; // interplot height of the mothers boudnary
+
 
     QuadTree();
-    QuadTree(const glm::vec2 topL, const glm::vec2 botR, double scale);
+    QuadTree(QuadNode& quadNode);
     ~QuadTree();
 
     QuadNode* getNode();
     glm::vec3 getTrans();
-    glm::vec4 getNeigh();
+    glm::vec4 getNeighbour();
+    glm::vec4 getHeight();
 
     void deleteSubtrees();
 
@@ -70,7 +82,7 @@ public:
 
 private:
     // Contains details of node 
-    QuadNode* node_;
+    QuadNode node_;
 
     // Children of the tree 
     QuadTree* topRightChild_;

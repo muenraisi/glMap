@@ -1,5 +1,3 @@
-
-
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <stb_image.h>
@@ -12,20 +10,18 @@
 #include <learnopengl/shader_i.h>
 #include <learnopengl/camera.h>
 #include <learnopengl/model.h>
+#include <learnopengl/heightMap.h>
 #include <learnopengl/terrain.h>
 #include <learnopengl/time.h>
+#include <learnopengl/debug.h>
 
 #include <iostream>
-#define _CRTDBG_MAP_ALLOC
-#include <stdlib.h>
-#include <crtdbg.h>
 
 
-#if defined(DEBUG) | defined(_DEBUG)
+
 #if defined(DEBUG) | defined(_DEBUG)
 void APIENTRY openglCallbackFunction(GLenum source, GLenum type, GLuint id,
-	GLenum severity, GLsizei length,
-	const GLchar* msg, const void* scale)
+	GLenum severity, GLsizei length, const GLchar* msg, const void* scale)
 {
 	char* _source;
 	char* _type;
@@ -125,7 +121,6 @@ void APIENTRY openglCallbackFunction(GLenum source, GLenum type, GLuint id,
 		abort();
 }
 #endif
-#endif
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
@@ -149,11 +144,12 @@ bool firstMouse = true;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
-
-
 int main()
 {
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+#if defined(DEBUG) | defined(_DEBUG)
+	detect_memory_leaks(true);
+#endif
+
 
 	// glfw: initialize and configure
 	// ------------------------------
@@ -213,8 +209,10 @@ int main()
 
 	int worldWidth, worldHeight;
 	unsigned int worldMap = loadTextureRec(FileSystem::getPath(mapPath + "height.png").c_str(), worldWidth, worldHeight);
-	//unsigned int terrainMap = loadTextureRec(FileSystem::getPath(mapPath + "terrain.png").c_str(), worldWidth, worldHeight);
-	//unsigned int riversMap = loadTextureRec(FileSystem::getPath(mapPath + "rivers.png").c_str(), worldWidth, worldHeight);
+	// TODO: the height map should load twice
+	HeightMap heightMap(FileSystem::getPath(mapPath + "height.png").c_str());
+	unsigned int terrainMap = loadTextureRec(FileSystem::getPath(mapPath + "terrain.png").c_str(), worldWidth, worldHeight);
+	unsigned int riversMap = loadTextureRec(FileSystem::getPath(mapPath + "rivers.png").c_str(), worldWidth, worldHeight);
 	int normalWidth, normalHeight;
 	unsigned int normalMap = loadTextureRec(FileSystem::getPath(mapPath + "normal.png").c_str(), normalWidth, normalHeight);
 
@@ -245,17 +243,17 @@ int main()
 	terrainShader.setInt("waterTexture", 3);
 	terrainShader.setInt("worldMap", 4);
 	terrainShader.setInt("normalMap", 5);
-	//terrainShader.setInt("terrainMap", 6);
-	//terrainShader.setInt("riversMap", 7);
+	terrainShader.setInt("terrainMap", 6);
+	terrainShader.setInt("riversMap", 7);
 
 
 
 	// lighting info
 	// -------------
-	glm::vec3 lightPos(0.0f, 3.0f, 0.0f);
+	glm::vec3 lightPos(7.0f, 5.0f, 3.0f);
 
 
-	Terrain worldTerrain(scaleWidth, scaleHeight, camera, terrainShader);
+	Terrain worldTerrain(scaleWidth, scaleHeight, camera, terrainShader, heightMap);
 
 	Time globalTime;
 	// render loop
@@ -307,10 +305,10 @@ int main()
 		glBindTexture(GL_TEXTURE_RECTANGLE, worldMap);
 		glActiveTexture(GL_TEXTURE5);
 		glBindTexture(GL_TEXTURE_RECTANGLE, normalMap);
-		//glActiveTexture(GL_TEXTURE6);
-		//glBindTexture(GL_TEXTURE_RECTANGLE, terrainMap);
-		//glActiveTexture(GL_TEXTURE7);
-		//glBindTexture(GL_TEXTURE_RECTANGLE, riversMap);
+		glActiveTexture(GL_TEXTURE6);
+		glBindTexture(GL_TEXTURE_RECTANGLE, terrainMap);
+		glActiveTexture(GL_TEXTURE7);
+	  glBindTexture(GL_TEXTURE_RECTANGLE, riversMap);
 
 		model = glm::mat4(1.0f);
 		model = glm::translate(model, glm::vec3(0.f, 0.0f, 0.f));
@@ -359,8 +357,11 @@ int main()
 
 	glfwTerminate();
 
-	
+
+#if defined(DEBUG) | defined(_DEBUG)
+	//std::cout << "start dump memory leaks." << std::endl;
 	//_CrtDumpMemoryLeaks();
+#endif
 	return 0;
 }
 
