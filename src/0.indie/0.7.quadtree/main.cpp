@@ -324,7 +324,7 @@ int main()
 		terrainShader.setVec3("lightPos", lightPos);
 
 		//verify the coordinate transfomation
-		//glm::vec4 testPoint(0.0f, 0.0f, 0.0f, 1.0f);
+		glm::vec4 testPoint(0.0f, 0.0f, 0.0f, 1.0f);
 		//glm::vec4 testPointM = model * testPoint;
 		//glm::vec4 testPointMV = view * testPointM;
 		//glm::vec4 testPointMVP = projection * testPointMV;

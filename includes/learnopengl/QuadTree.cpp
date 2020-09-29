@@ -7,13 +7,11 @@
 
 QuadTree::QuadTree()
 {
-	level = 1;
 	topNeighbour = nullptr;
 	leftNeighbour = nullptr;
 	botNeighbour = nullptr;
 	rightNeighbour = nullptr;
 
-	node_ = QuadNode();
 	topLeftChild_ = nullptr;
 	topRightChild_ = nullptr;
 	botLeftChild_ = nullptr;
@@ -21,16 +19,16 @@ QuadTree::QuadTree()
 }
 
 
-
-QuadTree::QuadTree(QuadNode& quadNode)
+QuadTree::QuadTree(Rect& _rect, int _level)
 {
-	level = 1;
+	rect = _rect;
+	level = _level;
+
 	topNeighbour = nullptr;
 	leftNeighbour = nullptr;
 	botNeighbour = nullptr;
 	rightNeighbour = nullptr;
 
-	node_ = quadNode;
 	topLeftChild_ = nullptr;
 	topRightChild_ = nullptr;
 	botLeftChild_ = nullptr;
@@ -42,14 +40,10 @@ QuadTree::~QuadTree()
 	deleteSubtrees();
 }
 
-QuadNode* QuadTree::getNode()
-{
-	return &node_;
-}
 
 glm::vec3 QuadTree::getTrans()
 {
-	return glm::vec3(node_.center.x, node_.center.y, node_.scale);
+	return glm::vec3(rect.x, rect.y, pow(2, -level));
 }
 
 glm::vec4 QuadTree::getNeighbour()
@@ -119,38 +113,30 @@ bool QuadTree::split()
 	if (!*topNeighbour || !*botNeighbour ||
 		!*rightNeighbour || !*leftNeighbour)
 		return false;
-	QuadNode tempNode;
-	glm::vec2 topCenter = glm::vec2(node_.center.x, node_.topLeft.y);
-	glm::vec2 centerRight = glm::vec2(node_.botRight.x, node_.center.y);
-	tempNode = QuadNode(topCenter, centerRight, node_.scale / 2.);
-	topRightChild_ = new QuadTree(tempNode);
-	topRightChild_->level = level + 1;
+	Rect childRect(0.,0.,rect.w/2., rect.h/2.);
+	childRect.setCenter(rect.x+rect.w/4., rect.y+rect.h/4.);
+	topRightChild_ = new QuadTree(childRect, level +1);
 	topRightChild_->topNeighbour = &(*topNeighbour)->botRightChild_;
 	topRightChild_->leftNeighbour = &topLeftChild_;
 	topRightChild_->rightNeighbour = &(*rightNeighbour)->topLeftChild_;
 	topRightChild_->botNeighbour = &botRightChild_;
 
-	tempNode = QuadNode(node_.topLeft, node_.center, node_.scale / 2.);
-	topLeftChild_ = new QuadTree(tempNode);
-	topLeftChild_->level = level + 1;
+	childRect.setCenter(rect.x - rect.w / 4., rect.y + rect.h / 4.);
+	topLeftChild_ = new QuadTree(childRect, level +1);
 	topLeftChild_->topNeighbour = &(*topNeighbour)->botLeftChild_;
 	topLeftChild_->leftNeighbour = &(*leftNeighbour)->topRightChild_;
 	topLeftChild_->rightNeighbour = &topRightChild_;
 	topLeftChild_->botNeighbour = &botLeftChild_;
 
-	glm::vec2 centerLeft = glm::vec2(node_.topLeft.x, node_.center.y);
-	glm::vec2 botCenter = glm::vec2(node_.center.x, node_.botRight.y);
-	tempNode = QuadNode(centerLeft, botCenter, node_.scale / 2.);
-	botLeftChild_ = new QuadTree(tempNode);
-	botLeftChild_->level = level + 1;
+	childRect.setCenter(rect.x - rect.w / 4., rect.y -rect.h / 4.);
+	botLeftChild_ = new QuadTree(childRect, level + 1);
 	botLeftChild_->topNeighbour = &topLeftChild_;
 	botLeftChild_->leftNeighbour = &(*leftNeighbour)->botRightChild_;
 	botLeftChild_->rightNeighbour = &botRightChild_;
 	botLeftChild_->botNeighbour = &(*botNeighbour)->topLeftChild_;
 
-	tempNode = QuadNode(node_.center, node_.botRight, node_.scale / 2.);
-	botRightChild_ = new QuadTree(tempNode);
-	botRightChild_->level = level + 1;
+	childRect.setCenter(rect.x + rect.w / 4., rect.y - rect.h / 4.);
+	botRightChild_ = new QuadTree(childRect, level + 1);
 	botRightChild_->topNeighbour = &topRightChild_;
 	botRightChild_->leftNeighbour = &botLeftChild_;
 	botRightChild_->rightNeighbour = &(*rightNeighbour)->botLeftChild_;

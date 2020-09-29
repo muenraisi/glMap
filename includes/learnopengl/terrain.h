@@ -21,7 +21,7 @@ public:
 	void splitQuadTree();
 	void updateInstances();
 
-	bool needSplit(const QuadNode& center);
+	bool needSplit(const Rect& center);
 
 
 private:

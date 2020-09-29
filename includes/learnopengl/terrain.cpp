@@ -8,19 +8,17 @@ Terrain::Terrain(float width, float height,
 {
 	glm::vec2 topLeft = glm::vec2(0, height_);
 	glm::vec2 botRight = glm::vec2(width_, 0);
-	
+
 	glm::vec2 origin = glm::vec2(0, 0);
-	QuadNode boudaryNode(origin, origin, 0.0);
-	boundaryTree_ = new QuadTree(boudaryNode);
+	boundaryTree_ = new QuadTree();
 	boundaryTree_->setChildren(boundaryTree_, boundaryTree_, boundaryTree_, boundaryTree_);
 
-	QuadNode quadNode(topLeft, botRight, 1.0);
-	quadTree_ = new QuadTree(quadNode);
+	Rect rect(width / 2., height / 2., width, height);
+	quadTree_ = new QuadTree(rect);
 	quadTree_->topNeighbour = &boundaryTree_;
 	quadTree_->botNeighbour = &boundaryTree_;
 	quadTree_->leftNeighbour = &boundaryTree_;
 	quadTree_->rightNeighbour = &boundaryTree_;
-
 
 	transInstance_ = new std::vector<glm::vec3>;
 	transInstance_->push_back(glm::vec3(width_ / 2., height_ / 2., 1.f));
@@ -178,13 +176,15 @@ void Terrain::splitQuadTree()
 		tree = treeQueue.front();
 		treeQueue.pop();
 		if (!tree) continue; //skip the leaves
-		QuadNode quadNode = *(tree -> getNode());
-		if (quadNode.topLeft == quadNode.botRight) continue;
-		if (needSplit(*(tree->getNode())) && !tree->split())
-			continue;
-		std::vector<QuadTree*> children = tree->getChildren();
-		for (QuadTree* child : children) {
-			treeQueue.push(child);
+		if (tree->rect.isEmpty()) continue;
+		if (needSplit(tree->rect))
+		{
+			if (tree->split()) {
+				std::vector<QuadTree*> children = tree->getChildren();
+				for (QuadTree* child : children) {
+					treeQueue.push(child);
+				}
+			}
 		}
 	}
 }
@@ -215,14 +215,14 @@ void Terrain::updateInstances()
 	}
 }
 
-bool Terrain::needSplit(const  QuadNode& center)
+bool Terrain::needSplit(const Rect& rect)
 {
 	//if (center.topLeft == center.botRight) return false;
 	//if (center.scale <= 0.01) return false;
 
-	glm::vec3 pointA = glm::vec3(center.topLeft.x, 0.f, center.topLeft.y);
-	glm::vec3 pointB = glm::vec3(center.botRight.x, 0.f, center.botRight.y);
-	glm::vec3 mid = glm::vec3(center.center.x, 0.f, center.center.y);
+	// any point can be used, we prefer the top left
+	glm::vec3 point0 = glm::vec3(rect.x+rect.w /2., 0.f, rect.y + rect.h / 2.); 
+	glm::vec3 mid = glm::vec3(rect.x, 0.f, rect.y);
 	
 	// belong to FOV
 	//glm::vec3 lookup = glm::normalize(mid - camera_->Position);
@@ -233,9 +233,9 @@ bool Terrain::needSplit(const  QuadNode& center)
 	//	return false;
 
 
-	float d = distance(pointA, pointB);
+	float d = 2* distance(point0, mid);
 	float l = distance(mid, camera_->Position);
 
-	if (l/d < 16) return true;
+	if (l/d < 8) return true;
 	else return false;
 }

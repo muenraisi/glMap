@@ -16,35 +16,45 @@ BL(2)   |    BR(3)
 以下对该象限类型的枚举
 */
 
-// 目的: 划分好节点，并生成网格
-
-
-
 // The objects that we want stored in the quadtree 
-struct QuadNode
+struct Rect
 {
-    glm::vec2 center;
-    glm::vec2 topLeft;
-    glm::vec2 botRight;
+  double x;
+  double y;
+  double w;
+  double h;
 
-    double scale;
-    QuadNode()
-    {
-      center = glm::vec2();
-      topLeft = glm::vec2();
-      botRight = glm::vec2();
-      scale = 1.;
-    }
-    QuadNode( glm::vec2 _topLeft,  glm::vec2 _botRight,  double _scale=1.0)
-    {
-        assert(_topLeft.x <= _botRight.x);
-        assert(_topLeft.y >= _botRight.y);
-        topLeft = _topLeft;
-        botRight = _botRight;
-        // default and will be change if close to camera
-        center = (_topLeft+_botRight)/2.f;
-        scale = _scale;
-    }
+  Rect() {
+    x = y = w = h = 0;
+  }
+
+  Rect(double _x, double _y, double _w, double _h)
+  {
+    setCenter(_x, _y);
+    setSize(_w, _h);
+  }
+  bool isEmpty() {
+    if (x == 0 && y == 0 && w == 0 && h == 0)
+      return true;
+    else
+      return false;
+  }
+  void setCenter(double _x, double _y) {
+#ifdef DEBUG
+    assert(_x >= 0);
+    assert(_y >= 0);
+#endif // DEBUG
+    x = _x;
+    y = _y;
+  }
+  void setSize(double _w, double _h) {
+#ifdef DEBUG
+    assert(_w >= 0);
+    assert(_h >= 0);
+#endif // DEBUG
+    w = _w;
+    h = _h;
+  }
 };
 
 // The main quadtree class 
@@ -58,15 +68,17 @@ public:
     QuadTree** botNeighbour;
     QuadTree** rightNeighbour;
 
+    Rect rect; 
+
     glm::vec4 realHeight; // the exact height based on the position 
     glm::vec4 imageHeight; // interplot height of the mothers boudnary
 
+    
 
     QuadTree();
-    QuadTree(QuadNode& quadNode);
+    QuadTree(Rect& _rect, int _level=0);
     ~QuadTree();
 
-    QuadNode* getNode();
     glm::vec3 getTrans();
     glm::vec4 getNeighbour();
     glm::vec4 getHeight();
@@ -81,9 +93,6 @@ public:
     bool split();
 
 private:
-    // Contains details of node 
-    QuadNode node_;
-
     // Children of the tree 
     QuadTree* topRightChild_;
     QuadTree* topLeftChild_;
