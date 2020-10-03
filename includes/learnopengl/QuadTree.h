@@ -6,6 +6,7 @@
 #include <glm/glm.hpp>
 
 #include "debug.h"
+#include "heightMap.h"
 using namespace std;
 
 
@@ -19,10 +20,7 @@ BL(2)   |    BR(3)
 // The objects that we want stored in the quadtree 
 struct Rect
 {
-  double x;
-  double y;
-  double w;
-  double h;
+  double x,y,w,h;
 
   Rect() {
     x = y = w = h = 0;
@@ -40,18 +38,12 @@ struct Rect
       return false;
   }
   void setCenter(double _x, double _y) {
-#ifdef DEBUG
-    assert(_x >= 0);
-    assert(_y >= 0);
-#endif // DEBUG
+    assert(_x >= 0 && _y>=0);
     x = _x;
     y = _y;
   }
   void setSize(double _w, double _h) {
-#ifdef DEBUG
-    assert(_w >= 0);
-    assert(_h >= 0);
-#endif // DEBUG
+    assert(_w >= 0 && _h>=0);
     w = _w;
     h = _h;
   }
@@ -61,27 +53,27 @@ struct Rect
 class QuadTree
 {
 public:
-    int level;
-    // Neighbour of the tree
+
+    // Neighbour of the tree, MUST use double pointer to avoid 
+    // refering an empty position when split tree
     QuadTree** topNeighbour;
     QuadTree** leftNeighbour;
     QuadTree** botNeighbour;
     QuadTree** rightNeighbour;
 
-    Rect rect; 
+    QuadTree* parentTree;
 
-    glm::vec4 realHeight; // the exact height based on the position 
-    glm::vec4 imageHeight; // interplot height of the mothers boudnary
-
-    
+    Rect rect;   
 
     QuadTree();
     QuadTree(Rect& _rect, int _level=0);
     ~QuadTree();
 
+    int getLevel();
     glm::vec3 getTrans();
     glm::vec4 getNeighbour();
-    glm::vec4 getHeight();
+    glm::vec4 getHeight( HeightMap &heightMap, float scale);
+    std::vector<glm::vec2> getConers();
 
     void deleteSubtrees();
 
@@ -93,6 +85,8 @@ public:
     bool split();
 
 private:
+    int level_;
+
     // Children of the tree 
     QuadTree* topRightChild_;
     QuadTree* topLeftChild_;

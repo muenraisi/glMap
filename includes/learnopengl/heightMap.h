@@ -10,7 +10,8 @@ public:
 	HeightMap(char const* path);
 	~HeightMap();
 
-	float query(int x, int y);
+	float query(int x, int y) const;
+	
 private:
 	int width_;
 	int height_;

@@ -16,23 +16,16 @@ QuadTree::QuadTree()
 	topRightChild_ = nullptr;
 	botLeftChild_ = nullptr;
 	botRightChild_ = nullptr;
+
+	parentTree = nullptr;
+	level_ = 1;
 }
 
 
-QuadTree::QuadTree(Rect& _rect, int _level)
+QuadTree::QuadTree(Rect& _rect, int _level) :QuadTree()
 {
 	rect = _rect;
-	level = _level;
-
-	topNeighbour = nullptr;
-	leftNeighbour = nullptr;
-	botNeighbour = nullptr;
-	rightNeighbour = nullptr;
-
-	topLeftChild_ = nullptr;
-	topRightChild_ = nullptr;
-	botLeftChild_ = nullptr;
-	botRightChild_ = nullptr;
+	level_ = _level;
 }
 
 QuadTree::~QuadTree()
@@ -41,35 +34,55 @@ QuadTree::~QuadTree()
 }
 
 
+int QuadTree::getLevel()
+{
+	return level_;
+}
+
 glm::vec3 QuadTree::getTrans()
 {
-	return glm::vec3(rect.x, rect.y, pow(2, -level));
+	return glm::vec3(rect.x, rect.y, pow(2, -level_));
 }
 
 glm::vec4 QuadTree::getNeighbour()
 {
-	return glm::vec4(*topNeighbour!=nullptr, *leftNeighbour!=nullptr, 
-		*botNeighbour!=nullptr, *rightNeighbour!=nullptr);
+	return glm::vec4(*topNeighbour != nullptr, *leftNeighbour != nullptr,
+		*botNeighbour != nullptr, *rightNeighbour != nullptr);
 }
 
-glm::vec4 QuadTree::getHeight()
+glm::vec4 QuadTree::getHeight( HeightMap& heightMap, float scale)
 {
 	// TODO:
-	return glm::vec4(0.f,0.f,0.f,0.f);
+	glm::vec4 ret;
+	std::vector<glm::vec2> corners = getConers();
+	for (int i = 0;i < 4;i++) {
+		ret[i] = heightMap.query(int(corners[i].x *scale), int(corners[i].y*scale));
+	}
+	return ret;
+}
+
+std::vector<glm::vec2> QuadTree::getConers()
+{
+	std::vector<glm::vec2> ret;
+	ret.push_back(glm::vec2(rect.x + rect.w / 2., rect.y + rect.h / 2.));
+	ret.push_back(glm::vec2(rect.x - rect.w / 2., rect.y + rect.h / 2.));
+	ret.push_back(glm::vec2(rect.x - rect.w / 2., rect.y - rect.h / 2.));
+	ret.push_back(glm::vec2(rect.x + rect.w / 2., rect.y - rect.h / 2.));
+	return ret;
 }
 
 void QuadTree::deleteSubtrees()
 {
-	if (topLeftChild_ )
+	if (topLeftChild_)
 	{
 		delete topLeftChild_;
 		topLeftChild_ = nullptr;
 	}
-	if (topRightChild_ ) {
+	if (topRightChild_) {
 		delete topRightChild_;
 		topRightChild_ = nullptr;
 	}
-	if (botLeftChild_ ) {
+	if (botLeftChild_) {
 		delete botLeftChild_;
 		botLeftChild_ = nullptr;
 	}
@@ -79,8 +92,8 @@ void QuadTree::deleteSubtrees()
 	}
 }
 
-void QuadTree::setChildren( QuadTree* topRightChild,  QuadTree* topLeftChild,
-	 QuadTree* botLeftChild,  QuadTree* botRightChild)
+void QuadTree::setChildren(QuadTree* topRightChild, QuadTree* topLeftChild,
+	QuadTree* botLeftChild, QuadTree* botRightChild)
 {
 	topLeftChild_ = topLeftChild;
 	topRightChild_ = topRightChild;
@@ -110,37 +123,41 @@ bool QuadTree::split()
 				botLeftTree_   |    botRightTree_
 							botCenter			botRight
 	*/
-	if (!*topNeighbour || !*botNeighbour ||
-		!*rightNeighbour || !*leftNeighbour)
-		return false;
-	Rect childRect(0.,0.,rect.w/2., rect.h/2.);
-	childRect.setCenter(rect.x+rect.w/4., rect.y+rect.h/4.);
-	topRightChild_ = new QuadTree(childRect, level +1);
+	assert(*topNeighbour != nullptr && *botNeighbour != nullptr &&
+		*rightNeighbour != nullptr && *leftNeighbour != nullptr);
+	
+	Rect childRect(0., 0., rect.w / 2., rect.h / 2.);
+	childRect.setCenter(rect.x + rect.w / 4., rect.y + rect.h / 4.);
+	topRightChild_ = new QuadTree(childRect, level_ + 1);
 	topRightChild_->topNeighbour = &(*topNeighbour)->botRightChild_;
 	topRightChild_->leftNeighbour = &topLeftChild_;
 	topRightChild_->rightNeighbour = &(*rightNeighbour)->topLeftChild_;
 	topRightChild_->botNeighbour = &botRightChild_;
+	topRightChild_->parentTree = this;
 
 	childRect.setCenter(rect.x - rect.w / 4., rect.y + rect.h / 4.);
-	topLeftChild_ = new QuadTree(childRect, level +1);
+	topLeftChild_ = new QuadTree(childRect, level_ + 1);
 	topLeftChild_->topNeighbour = &(*topNeighbour)->botLeftChild_;
 	topLeftChild_->leftNeighbour = &(*leftNeighbour)->topRightChild_;
 	topLeftChild_->rightNeighbour = &topRightChild_;
 	topLeftChild_->botNeighbour = &botLeftChild_;
+	topLeftChild_->parentTree = this;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
 
-	childRect.setCenter(rect.x - rect.w / 4., rect.y -rect.h / 4.);
-	botLeftChild_ = new QuadTree(childRect, level + 1);
+	childRect.setCenter(rect.x - rect.w / 4., rect.y - rect.h / 4.);
+	botLeftChild_ = new QuadTree(childRect, level_ + 1);
 	botLeftChild_->topNeighbour = &topLeftChild_;
 	botLeftChild_->leftNeighbour = &(*leftNeighbour)->botRightChild_;
 	botLeftChild_->rightNeighbour = &botRightChild_;
 	botLeftChild_->botNeighbour = &(*botNeighbour)->topLeftChild_;
+	topLeftChild_->parentTree = this;
 
 	childRect.setCenter(rect.x + rect.w / 4., rect.y - rect.h / 4.);
-	botRightChild_ = new QuadTree(childRect, level + 1);
+	botRightChild_ = new QuadTree(childRect, level_ + 1);
 	botRightChild_->topNeighbour = &topRightChild_;
 	botRightChild_->leftNeighbour = &botLeftChild_;
 	botRightChild_->rightNeighbour = &(*rightNeighbour)->botLeftChild_;
 	botRightChild_->botNeighbour = &(*botNeighbour)->topRightChild_;
+	botRightChild_->parentTree = this;
 
 	return true;
 }

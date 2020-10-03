@@ -4,7 +4,7 @@ cmake_policy(VERSION 2.8)
 project (glMap)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 endif()
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -19,7 +19,7 @@ endif(WIN32)
 
 link_directories(${CMAKE_SOURCE_DIR}/lib)
 
-list(APPEND CMAKE_CXX_FLAGS "-std=c++11")
+list(APPEND CMAKE_CXX_FLAGS)
 
 # find the required packages
 find_package(GLM REQUIRED)
@@ -70,6 +70,7 @@ set(0.indie
 	0.5.sanguo_map
 	0.6.height2delta
 	0.7.quadtree
+	0.8.landmark
 )
 
 # set(1.getting_started
@@ -206,7 +207,7 @@ foreach(CHAPTER ${CHAPTERS})
         add_executable(${NAME} ${SOURCE})
         target_link_libraries(${NAME} ${LIBS})
         if(WIN32)
-            set_target_properties(${NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/${CHAPTER}")
+            set_target_properties(${NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/${CHAPTER}"  VS_DEBUGGER_WORKING_DIRECTORY "${TargetDir}")
         elseif(UNIX AND NOT APPLE)
             set_target_properties(${NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin/${CHAPTER}")
         elseif(APPLE)

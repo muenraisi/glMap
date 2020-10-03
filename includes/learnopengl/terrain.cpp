@@ -26,8 +26,6 @@ Terrain::Terrain(float width, float height,
 	neighbourInstance_ = new std::vector<glm::vec4>;
 	neighbourInstance_->push_back(glm::vec4(1.0, 1.0, 1.0, 1.0));
 
-	heightInstance_ = new std::vector<glm::vec4>;
-	heightInstance_->push_back(glm::vec4(0., 0.0, 0.0, 0.0)); //TODO:
 }
 
 Terrain::~Terrain()
@@ -46,9 +44,7 @@ Terrain::~Terrain()
 	if (neighbourInstance_) {
 		delete neighbourInstance_;
 	}
-	if (heightInstance_) {
-		delete heightInstance_;
-	}
+
 }
 
 void Terrain::render()
@@ -82,24 +78,16 @@ void Terrain::render()
 	glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid*)0);
 	glVertexAttribDivisor(2, 1);
 
-	glBindBuffer(GL_ARRAY_BUFFER, heightIBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec4) * heightInstance_->size(),
-		heightInstance_->data(), GL_STATIC_DRAW);
-
-	glEnableVertexAttribArray(3);
-	glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid*)0);
-	glVertexAttribDivisor(3, 1);
-
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	glPatchParameteri(GL_PATCH_VERTICES, 4);
-	glDrawElementsInstanced(GL_PATCHES, 4, GL_UNSIGNED_SHORT, (const GLvoid*)0, transInstance_->size());
+	glDrawElementsInstanced(GL_PATCHES, 4, GL_UNSIGNED_SHORT, (const GLvoid*)0, static_cast<GLsizei>(transInstance_->size()));
 }
 
 
 void Terrain::initial() {
-	double halfWidth = width_ / 2.;
-	double halfHeight = height_ / 2.;
+	float halfWidth = static_cast<float>(width_ / 2.);
+	float halfHeight = static_cast<float>(height_ / 2.);
 	// positions
 	glm::vec3 pos1(halfWidth, 0.0f, halfHeight);
 	glm::vec3 pos2(-halfWidth, 0.0f, halfHeight);
@@ -140,20 +128,19 @@ void Terrain::initial() {
 	shader_->setVec3("aBitangent", bitangent);
 
 	std::vector<float> worldVertices{
-		-width_ / 2.f, 0.f, -height_ / 2.f,
-		width_ / 2.f, 0.f, -height_ / 2.f,
-		-width_ / 2.f, 0.f, height_ / 2.f,
-		width_ / 2.f, 0.f, height_ / 2.f
+		-halfWidth, 0.f, -halfHeight,
+		-halfWidth, 0.f, halfHeight,
+		halfWidth, 0.f, halfHeight,
+		halfWidth, 0.f, -halfHeight,
 	};
 
-	std::vector<GLushort> elems{ 0, 2, 3, 1 };
+	std::vector<GLushort> elems{ 0, 1, 2, 3 };
 
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
 	glGenBuffers(1, &EBO);
 	glGenBuffers(1, &transIBO);
 	glGenBuffers(1, &neighbourIBO);
-	glGenBuffers(1, &heightIBO);
 
 	glBindVertexArray(VAO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -177,7 +164,7 @@ void Terrain::splitQuadTree()
 		treeQueue.pop();
 		if (!tree) continue; //skip the leaves
 		if (tree->rect.isEmpty()) continue;
-		if (needSplit(tree->rect))
+		if (needSplit(tree->rect) )
 		{
 			if (tree->split()) {
 				std::vector<QuadTree*> children = tree->getChildren();
@@ -193,7 +180,6 @@ void Terrain::updateInstances()
 {
 	transInstance_->clear();
 	neighbourInstance_->clear();
-	heightInstance_->clear();
 	std::queue<QuadTree*> treeQueue;
 	treeQueue.push(quadTree_);
 	QuadTree* tree = nullptr;
@@ -205,7 +191,6 @@ void Terrain::updateInstances()
 		if (tree->empty()) {
 			transInstance_->push_back(tree->getTrans());
 			neighbourInstance_->push_back(tree->getNeighbour());
-			heightInstance_->push_back(tree->getHeight());
 		}
 		else {
 			for (QuadTree* subTree : tree->getChildren()) {
@@ -221,7 +206,7 @@ bool Terrain::needSplit(const Rect& rect)
 	//if (center.scale <= 0.01) return false;
 
 	// any point can be used, we prefer the top left
-	glm::vec3 point0 = glm::vec3(rect.x+rect.w /2., 0.f, rect.y + rect.h / 2.); 
+	glm::vec3 point0 = glm::vec3(rect.x + rect.w / 2., 0.f, rect.y + rect.h / 2.);
 	glm::vec3 mid = glm::vec3(rect.x, 0.f, rect.y);
 	
 	// belong to FOV
@@ -233,9 +218,9 @@ bool Terrain::needSplit(const Rect& rect)
 	//	return false;
 
 
-	float d = 2* distance(point0, mid);
+	float d =  distance(point0, mid);
 	float l = distance(mid, camera_->Position);
 
-	if (l/d < 8) return true;
+	if (l/d < 32) return true;
 	else return false;
 }

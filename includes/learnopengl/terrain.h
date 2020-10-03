@@ -30,16 +30,14 @@ private:
 	Camera* camera_;
 	Shader* shader_;
 	HeightMap* heightMap_;
-	int max_level_ = 5;
+	int max_level_ = 10;
 	QuadTree* quadTree_;
 	QuadTree* boundaryTree_;
 	std::vector<glm::vec3>* transInstance_;
 	std::vector<glm::vec4>* neighbourInstance_;
-	std::vector<glm::vec4>* heightInstance_;
-
 
 	unsigned int VAO=0;
-	unsigned int VBO, EBO, transIBO, neighbourIBO, heightIBO;
+	unsigned int VBO, EBO, transIBO, neighbourIBO;
 
 };
 
