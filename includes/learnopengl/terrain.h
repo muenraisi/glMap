@@ -18,7 +18,7 @@ public:
 	~Terrain();
 	void render();
 	void initial();
-	void splitQuadTree();
+	void splitQuadTree(); // obtain the childs along with 
 	void updateInstances();
 
 	bool needSplit(const Rect& center);
@@ -35,6 +35,8 @@ private:
 	QuadTree* boundaryTree_;
 	std::vector<glm::vec3>* transInstance_;
 	std::vector<glm::vec4>* neighbourInstance_;
+
+	std::vector<QuadTree*> leaves_;
 
 	unsigned int VAO=0;
 	unsigned int VBO, EBO, transIBO, neighbourIBO;

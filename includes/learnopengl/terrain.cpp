@@ -25,7 +25,6 @@ Terrain::Terrain(float width, float height,
 
 	neighbourInstance_ = new std::vector<glm::vec4>;
 	neighbourInstance_->push_back(glm::vec4(1.0, 1.0, 1.0, 1.0));
-
 }
 
 Terrain::~Terrain()
@@ -155,15 +154,20 @@ void Terrain::initial() {
 
 void Terrain::splitQuadTree()
 {
+	//clean
 	quadTree_->deleteSubtrees();
+	leaves_.clear();
 	std::queue<QuadTree*> treeQueue;
 	treeQueue.push(quadTree_);
 	QuadTree* tree = nullptr;
 	while (!treeQueue.empty()) {
 		tree = treeQueue.front();
 		treeQueue.pop();
-		if (!tree) continue; //skip the leaves
-		if (tree->rect.isEmpty()) continue;
+		if (tree == nullptr) {
+			continue; //skip the error empty tree
+		}
+		if (tree->rect.isEmpty()) continue; //not allowed to split
+		//if (tree->isLeaf()) continue;
 		if (needSplit(tree->rect) )
 		{
 			if (tree->split()) {
@@ -173,30 +177,22 @@ void Terrain::splitQuadTree()
 				}
 			}
 		}
+		else {
+			assert(tree->isLeaf());
+			leaves_.push_back(tree);
+		}
 	}
 }
+
 
 void Terrain::updateInstances()
 {
 	transInstance_->clear();
 	neighbourInstance_->clear();
-	std::queue<QuadTree*> treeQueue;
-	treeQueue.push(quadTree_);
-	QuadTree* tree = nullptr;
-	while (!treeQueue.empty()) {
-		tree = treeQueue.front();
-		treeQueue.pop();
-		if (!tree)
-			continue;
-		if (tree->empty()) {
-			transInstance_->push_back(tree->getTrans());
-			neighbourInstance_->push_back(tree->getNeighbour());
-		}
-		else {
-			for (QuadTree* subTree : tree->getChildren()) {
-				treeQueue.push(subTree);
-			}
-		}
+
+	for (auto leaf : leaves_) {
+		transInstance_->push_back(leaf->getTrans());
+		neighbourInstance_->push_back(leaf->getNeighbour());
 	}
 }
 

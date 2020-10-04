@@ -81,7 +81,7 @@ public:
         QuadTree* botLeftChild, QuadTree* botRightChild);
     std::vector<QuadTree*> getChildren();
 
-    bool empty();
+    bool isLeaf();
     bool split();
 
 private:

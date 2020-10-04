@@ -106,9 +106,12 @@ std::vector<QuadTree*> QuadTree::getChildren()
 	return std::vector<QuadTree*>{ topRightChild_, topLeftChild_, botLeftChild_, botRightChild_ };
 }
 
-bool QuadTree::empty()
+bool QuadTree::isLeaf()
 {
-	if (!topLeftChild_ || !topRightChild_ || !botLeftChild_ || !botRightChild_)
+	if (topLeftChild_ == nullptr || 
+		topRightChild_ == nullptr ||
+		botLeftChild_ == nullptr || 
+		botRightChild_ == nullptr )
 		return true;
 	else
 		return false;
