@@ -2,6 +2,7 @@
 // C++ Implementation of Quad Tree 
 #include <iostream> 
 #include <vector>
+#include <queue>
 #include <cmath> 
 #include <glm/glm.hpp>
 
@@ -75,11 +76,13 @@ public:
     glm::vec4 getHeight( HeightMap &heightMap, float scale);
     std::vector<glm::vec2> getConers();
 
+    
     void deleteSubtrees();
 
     void setChildren(QuadTree* topRightChild, QuadTree* topLeftChild,
         QuadTree* botLeftChild, QuadTree* botRightChild);
     std::vector<QuadTree*> getChildren();
+    std::vector<QuadTree*> getDescendants();
 
     bool isLeaf();
     bool split();

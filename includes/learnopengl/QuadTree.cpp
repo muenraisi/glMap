@@ -103,7 +103,33 @@ void QuadTree::setChildren(QuadTree* topRightChild, QuadTree* topLeftChild,
 
 std::vector<QuadTree*> QuadTree::getChildren()
 {
-	return std::vector<QuadTree*>{ topRightChild_, topLeftChild_, botLeftChild_, botRightChild_ };
+	if (isLeaf())
+		return std::vector<QuadTree*>();
+	else
+		return std::vector<QuadTree*>{ topRightChild_, topLeftChild_, botLeftChild_, botRightChild_ };
+}
+
+std::vector<QuadTree*> QuadTree::getDescendants()
+{
+	std::vector<QuadTree*> descendatas;
+
+	std::queue<QuadTree*> candidates;
+	candidates.push(this);
+	QuadTree* now=nullptr;
+	while (!candidates.empty()) {
+		now = candidates.front();
+		candidates.pop();
+		std::vector<QuadTree*> children= now->getChildren();
+		if (children.empty()) {
+			descendatas.push_back(now);
+		}
+		else {
+			for (auto tree : now->getChildren()) {
+				candidates.push(tree);
+			}
+		}
+	}
+	return descendatas;
 }
 
 bool QuadTree::isLeaf()
@@ -152,7 +178,7 @@ bool QuadTree::split()
 	botLeftChild_->leftNeighbour = &(*leftNeighbour)->botRightChild_;
 	botLeftChild_->rightNeighbour = &botRightChild_;
 	botLeftChild_->botNeighbour = &(*botNeighbour)->topLeftChild_;
-	topLeftChild_->parentTree = this;
+	botLeftChild_->parentTree = this;
 
 	childRect.setCenter(rect.x + rect.w / 4., rect.y - rect.h / 4.);
 	botRightChild_ = new QuadTree(childRect, level_ + 1);

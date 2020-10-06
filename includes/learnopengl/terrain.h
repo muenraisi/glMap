@@ -1,7 +1,9 @@
 #pragma once
 
 #include <vector>
+#include <set>
 #include <queue>
+#include <unordered_map>
 #include <glm/glm.hpp>
 
 #include "camera.h"
@@ -9,7 +11,6 @@
 #include "heightMap.h"
 #include "QuadTree.h"
 #include "debug.h"
-
 
 // here we define a class on render the terrain
 class Terrain {
@@ -19,10 +20,10 @@ public:
 	void render();
 	void initial();
 	void splitQuadTree(); // obtain the childs along with 
+	void updateQuadTree();
+
 	void updateInstances();
-
 	bool needSplit(const Rect& center);
-
 
 private:
 	float width_;
@@ -36,11 +37,9 @@ private:
 	std::vector<glm::vec3>* transInstance_;
 	std::vector<glm::vec4>* neighbourInstance_;
 
-	std::vector<QuadTree*> leaves_;
+	std::set<QuadTree*> leaves_;
 
-	unsigned int VAO=0;
+	unsigned int VAO = 0;
 	unsigned int VBO, EBO, transIBO, neighbourIBO;
 
 };
-
-

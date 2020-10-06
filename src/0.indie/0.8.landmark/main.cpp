@@ -331,12 +331,9 @@ int main()
 		//std::cout << "MV:" << testPointMV.x << " " << testPointMV.y << " " << testPointMV.z << " " << testPointMV.w << std::endl;
 		//std::cout << "MVP:" << testPointMVP.x << " " << testPointMVP.y << " " << testPointMVP.z << " " << testPointMVP.w << std::endl;
 
-
-
 		worldTerrain.render();
 		/*glPatchParameteri(GL_PATCH_VERTICES, 4);
 		glDrawElements(GL_PATCHES, 4, GL_UNSIGNED_SHORT, (const GLvoid *)0);*/
-
 
 		glBindVertexArray(0);
 		// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)

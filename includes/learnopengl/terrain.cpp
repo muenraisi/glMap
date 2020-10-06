@@ -50,11 +50,13 @@ void Terrain::render()
 {
 	//width = 2; height = 1;
 
-	splitQuadTree();
-
 	if (VAO == 0)
 	{
+		splitQuadTree();
 		initial();
+	}
+	else {
+		updateQuadTree();
 	}
 
 	updateInstances();
@@ -166,9 +168,10 @@ void Terrain::splitQuadTree()
 		if (tree == nullptr) {
 			continue; //skip the error empty tree
 		}
-		if (tree->rect.isEmpty()) continue; //not allowed to split
+		if (tree->rect.isEmpty()) 
+			continue; //not allowed to split
 		//if (tree->isLeaf()) continue;
-		if (needSplit(tree->rect) )
+		if (needSplit(tree->rect))
 		{
 			if (tree->split()) {
 				std::vector<QuadTree*> children = tree->getChildren();
@@ -179,11 +182,56 @@ void Terrain::splitQuadTree()
 		}
 		else {
 			assert(tree->isLeaf());
-			leaves_.push_back(tree);
+			leaves_.insert(tree);
 		}
 	}
 }
 
+void Terrain::updateQuadTree() {
+	std::set<QuadTree*> temp;
+	std::unordered_map<QuadTree*, int> visit;
+	for (auto leaf : leaves_) {
+		// add leaves if leaf need be split
+		if (needSplit(leaf->rect))
+		{
+			if (leaf->split()) {
+				std::vector<QuadTree*> children = leaf->getChildren();
+				for (QuadTree* child : children) {
+					temp.insert(child);
+				}
+			}
+		}
+		// if (needSplit)
+		else if (leaf->parentTree == nullptr) {
+			temp.insert(leaf);
+		}
+		else {
+			if (visit.find(leaf->parentTree) == visit.end()) {
+				visit[leaf->parentTree] = 1;
+				temp.insert(leaf);
+			}
+			else {
+				visit[leaf->parentTree] += 1;
+				//std::cout << visit[leaf->parentTree] << std::endl;
+				temp.insert(leaf);
+				if (visit[leaf->parentTree] == 4) {
+					//std::cout << "check parent tree ";
+					if (!needSplit(leaf->parentTree->rect)) {
+						//std::cout << "split" << std::endl;
+						for (auto child : leaf->parentTree->getChildren()) {
+							temp.erase(child);
+						}
+						temp.insert(leaf->parentTree); 
+						visit.erase(leaf->parentTree);
+						leaf->parentTree->deleteSubtrees();
+					}
+					//std::cout << "remain" << std::endl;
+				}
+			}
+		}
+	}
+	leaves_ = temp;
+}
 
 void Terrain::updateInstances()
 {
