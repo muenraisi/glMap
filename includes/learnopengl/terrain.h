@@ -18,12 +18,12 @@ public:
 	Terrain(float width, float height, Camera& camera, Shader& shader, HeightMap& heightMap);
 	~Terrain();
 	void render();
-	void initial();
+	void initialGLData();
 	void splitQuadTree(); // obtain the childs along with 
 	void updateQuadTree();
 
 	void updateInstances();
-	bool needSplit(const Rect& center);
+	bool needSplit(const QuadTree* quadTree);
 
 private:
 	float width_;
@@ -37,7 +37,7 @@ private:
 	std::vector<glm::vec3>* transInstance_;
 	std::vector<glm::vec4>* neighbourInstance_;
 
-	std::set<QuadTree*> leaves_;
+	std::vector<std::set<QuadTree*>> leaves_;
 
 	unsigned int VAO = 0;
 	unsigned int VBO, EBO, transIBO, neighbourIBO;

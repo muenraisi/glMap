@@ -1,9 +1,9 @@
 #include "terrain.h"
 #include "debug.h"
 
-Terrain::Terrain(float width, float height,  
-	Camera& camera, Shader& shader, HeightMap& heightMap):
-	width_(width), height_(height), 
+Terrain::Terrain(float width, float height,
+	Camera& camera, Shader& shader, HeightMap& heightMap) :
+	width_(width), height_(height),
 	camera_(&camera), shader_(&shader), heightMap_(&heightMap)
 {
 	glm::vec2 topLeft = glm::vec2(0, height_);
@@ -33,11 +33,11 @@ Terrain::~Terrain()
 	if (quadTree_) {
 		delete quadTree_;
 	}
-	if (boundaryTree_ ) {
+	if (boundaryTree_) {
 		boundaryTree_->setChildren(nullptr, nullptr, nullptr, nullptr);
 		delete boundaryTree_;
 	}
-	if (transInstance_ ) {
+	if (transInstance_) {
 		delete transInstance_;
 	}
 	if (neighbourInstance_) {
@@ -53,7 +53,7 @@ void Terrain::render()
 	if (VAO == 0)
 	{
 		splitQuadTree();
-		initial();
+		initialGLData();
 	}
 	else {
 		updateQuadTree();
@@ -64,7 +64,7 @@ void Terrain::render()
 	glBindVertexArray(VAO);
 
 	glBindBuffer(GL_ARRAY_BUFFER, transIBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * transInstance_->size(), 
+	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * transInstance_->size(),
 		transInstance_->data(), GL_STATIC_DRAW);
 
 	glEnableVertexAttribArray(1);
@@ -72,7 +72,7 @@ void Terrain::render()
 	glVertexAttribDivisor(1, 1);
 
 	glBindBuffer(GL_ARRAY_BUFFER, neighbourIBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec4) * neighbourInstance_->size(), 
+	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec4) * neighbourInstance_->size(),
 		neighbourInstance_->data(), GL_STATIC_DRAW);
 
 	glEnableVertexAttribArray(2);
@@ -86,7 +86,7 @@ void Terrain::render()
 }
 
 
-void Terrain::initial() {
+void Terrain::initialGLData() {
 	float halfWidth = static_cast<float>(width_ / 2.);
 	float halfHeight = static_cast<float>(height_ / 2.);
 	// positions
@@ -162,75 +162,94 @@ void Terrain::splitQuadTree()
 	std::queue<QuadTree*> treeQueue;
 	treeQueue.push(quadTree_);
 	QuadTree* tree = nullptr;
+
+	int now_depth = 0;
+	int max_width = 1;
+	int now_width = 0;
+	int temp_max_width = 0;
+	leaves_.push_back({});
+
 	while (!treeQueue.empty()) {
+		// from root to the deepest leaf 
 		tree = treeQueue.front();
 		treeQueue.pop();
+		now_width += 1;
+		if (now_width > max_width) {
+			now_width = 1;
+			now_depth += 1;
+			max_width = temp_max_width;
+			temp_max_width = 0;
+			leaves_.push_back({});
+		}
+		assert(now_depth == tree->getDepth());
 		if (tree == nullptr) {
 			continue; //skip the error empty tree
 		}
-		if (tree->rect.isEmpty()) 
+		if (tree->rect.isEmpty())
 			continue; //not allowed to split
 		//if (tree->isLeaf()) continue;
-		if (needSplit(tree->rect))
+		if (needSplit(tree) && tree->split())
 		{
-			if (tree->split()) {
-				std::vector<QuadTree*> children = tree->getChildren();
-				for (QuadTree* child : children) {
-					treeQueue.push(child);
-				}
+			std::vector<QuadTree*> children = tree->getChildren();
+			for (QuadTree* child : children) {
+				treeQueue.push(child);
 			}
+			temp_max_width += 4;
 		}
 		else {
 			assert(tree->isLeaf());
-			leaves_.insert(tree);
+			leaves_[now_depth].insert(tree);
 		}
 	}
 }
 
 void Terrain::updateQuadTree() {
-	std::set<QuadTree*> temp;
+	std::vector<std::set<QuadTree*>> temp;
+	temp.resize(leaves_.size() + 1);
 	std::unordered_map<QuadTree*, int> visit;
-	for (auto leaf : leaves_) {
-		// add leaves if leaf need be split
-		if (needSplit(leaf->rect))
-		{
-			if (leaf->split()) {
+	for (size_t i = 0; i != leaves_.size(); i++) {
+		for (const auto& leaf : leaves_[i]) {
+			if (needSplit(leaf) && leaf->split())
+			{
 				std::vector<QuadTree*> children = leaf->getChildren();
 				for (QuadTree* child : children) {
-					temp.insert(child);
+					temp[i+1].insert(child);
 				}
 			}
-		}
-		// if (needSplit)
-		else if (leaf->parentTree == nullptr) {
-			temp.insert(leaf);
-		}
-		else {
-			if (visit.find(leaf->parentTree) == visit.end()) {
-				visit[leaf->parentTree] = 1;
-				temp.insert(leaf);
+			// if (needSplit)
+			else if (leaf->parentTree == nullptr) {
+				temp[i].insert(leaf);
 			}
 			else {
-				visit[leaf->parentTree] += 1;
-				//std::cout << visit[leaf->parentTree] << std::endl;
-				temp.insert(leaf);
-				if (visit[leaf->parentTree] == 4) {
-					//std::cout << "check parent tree ";
-					if (!needSplit(leaf->parentTree->rect)) {
-						//std::cout << "split" << std::endl;
-						for (auto child : leaf->parentTree->getChildren()) {
-							temp.erase(child);
+				if (visit.find(leaf->parentTree) == visit.end()) {
+					visit[leaf->parentTree] = 1;
+					temp[i].insert(leaf);
+				}
+				else {
+					visit[leaf->parentTree] += 1;
+					//std::cout << visit[leaf->parentTree] << std::endl;
+					temp[i].insert(leaf);
+					if (visit[leaf->parentTree] == 4) {
+						//std::cout << "check parent tree ";
+						if (!needSplit(leaf->parentTree)) {
+							//std::cout << "split" << std::endl;
+							for (auto child : leaf->parentTree->getChildren()) {
+								temp[i].erase(child);
+							}
+							temp[i-1].insert(leaf->parentTree);
+							visit.erase(leaf->parentTree);
+							leaf->parentTree->deleteSubtrees();
 						}
-						temp.insert(leaf->parentTree); 
-						visit.erase(leaf->parentTree);
-						leaf->parentTree->deleteSubtrees();
+						//std::cout << "remain" << std::endl;
 					}
-					//std::cout << "remain" << std::endl;
 				}
 			}
 		}
 	}
 	leaves_ = temp;
+	if (leaves_.back().empty()) {
+		leaves_.pop_back();
+	}
 }
 
 void Terrain::updateInstances()
@@ -238,21 +257,24 @@ void Terrain::updateInstances()
 	transInstance_->clear();
 	neighbourInstance_->clear();
 
-	for (auto leaf : leaves_) {
-		transInstance_->push_back(leaf->getTrans());
-		neighbourInstance_->push_back(leaf->getNeighbour());
+	for (const auto& depth : leaves_) {
+		for (const auto& leaf : depth) {
+			transInstance_->push_back(leaf->getTrans());
+			neighbourInstance_->push_back(leaf->getNeighbour());
+		}
 	}
 }
 
-bool Terrain::needSplit(const Rect& rect)
+bool Terrain::needSplit(const QuadTree* quadTree)
 {
 	//if (center.topLeft == center.botRight) return false;
 	//if (center.scale <= 0.01) return false;
 
+	Rect rect = quadTree->rect;
 	// any point can be used, we prefer the top left
 	glm::vec3 point0 = glm::vec3(rect.x + rect.w / 2., 0.f, rect.y + rect.h / 2.);
 	glm::vec3 mid = glm::vec3(rect.x, 0.f, rect.y);
-	
+
 	// belong to FOV
 	//glm::vec3 lookup = glm::normalize(mid - camera_->Position);
 	//float cosA = glm::dot(lookup, camera_->Front);
@@ -262,9 +284,9 @@ bool Terrain::needSplit(const Rect& rect)
 	//	return false;
 
 
-	float d =  distance(point0, mid);
+	float d = distance(point0, mid);
 	float l = distance(mid, camera_->Position);
 
-	if (l/d < 32) return true;
+	if (l / d < 2) return true;
 	else return false;
 }

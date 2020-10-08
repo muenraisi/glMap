@@ -67,10 +67,10 @@ public:
     Rect rect;   
 
     QuadTree();
-    QuadTree(Rect& _rect, int _level=0);
+    QuadTree(Rect& _rect, int _depth=0);
     ~QuadTree();
 
-    int getLevel();
+    int getDepth();
     glm::vec3 getTrans();
     glm::vec4 getNeighbour();
     glm::vec4 getHeight( HeightMap &heightMap, float scale);
@@ -88,7 +88,7 @@ public:
     bool split();
 
 private:
-    int level_;
+    int depth_;
 
     // Children of the tree 
     QuadTree* topRightChild_;
