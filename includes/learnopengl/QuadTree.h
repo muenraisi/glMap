@@ -70,7 +70,7 @@ public:
     QuadTree(Rect& _rect, int _depth=0);
     ~QuadTree();
 
-    int getDepth();
+    int getDepth() const;
     glm::vec3 getTrans();
     glm::vec4 getNeighbour();
     glm::vec4 getHeight( HeightMap &heightMap, float scale);
@@ -85,7 +85,8 @@ public:
     std::vector<QuadTree*> getDescendants();
 
     bool isLeaf();
-    bool split();
+    bool isAdjacent();
+    void split();
 
 private:
     int depth_;
@@ -95,6 +96,5 @@ private:
     QuadTree* topLeftChild_;
     QuadTree* botLeftChild_;
     QuadTree* botRightChild_;
-
 
 };

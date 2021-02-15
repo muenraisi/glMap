@@ -34,7 +34,7 @@ QuadTree::~QuadTree()
 }
 
 
-int QuadTree::getDepth()
+int QuadTree::getDepth() const
 {
 	return depth_;
 }
@@ -55,7 +55,7 @@ glm::vec4 QuadTree::getHeight( HeightMap& heightMap, float scale)
 	// TODO:
 	glm::vec4 ret;
 	std::vector<glm::vec2> corners = getConers();
-	for (int i = 0;i < 4;i++) {
+	for (int i = 0; i < 4; i++) {
 		ret[i] = heightMap.query(int(corners[i].x *scale), int(corners[i].y*scale));
 	}
 	return ret;
@@ -134,16 +134,23 @@ std::vector<QuadTree*> QuadTree::getDescendants()
 
 bool QuadTree::isLeaf()
 {
-	if (topLeftChild_ == nullptr || 
-		topRightChild_ == nullptr ||
-		botLeftChild_ == nullptr || 
-		botRightChild_ == nullptr )
+	if (topLeftChild_ == nullptr || topRightChild_ == nullptr ||
+		botLeftChild_ == nullptr || botRightChild_ == nullptr )
 		return true;
 	else
 		return false;
 }
 
-bool QuadTree::split()
+bool QuadTree::isAdjacent()
+{
+	if (*topNeighbour == nullptr || *botNeighbour == nullptr ||
+		*rightNeighbour == nullptr || *leftNeighbour == nullptr)
+		return false;
+	else
+		return true;
+}
+
+void QuadTree::split()
 {
 	/*
 	topLeft					topCenter
@@ -152,9 +159,6 @@ bool QuadTree::split()
 				botLeftTree_   |    botRightTree_
 							botCenter			botRight
 	*/
-	if(*topNeighbour == nullptr || *botNeighbour == nullptr ||
-		*rightNeighbour == nullptr || *leftNeighbour == nullptr)
-		return false;
 
 	Rect childRect(0., 0., rect.w / 2., rect.h / 2.);
 	childRect.setCenter(rect.x + rect.w / 4., rect.y + rect.h / 4.);
@@ -188,8 +192,6 @@ bool QuadTree::split()
 	botRightChild_->rightNeighbour = &(*rightNeighbour)->botLeftChild_;
 	botRightChild_->botNeighbour = &(*botNeighbour)->topRightChild_;
 	botRightChild_->parentTree = this;
-
-	return true;
 }
 
 
