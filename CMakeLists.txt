@@ -71,6 +71,7 @@ set(0.indie
 	0.6.height2delta
 	0.7.quadtree
 	0.8.landmark
+	0.9.height_smooth
 )
 
 # set(1.getting_started
